@@ -3,6 +3,14 @@ Mobile-First Dual Fullscreen: AI CLI & Text Editor
 
 A minimal, phone-friendly React PWA for editing GitHub repo files using an AI assistant. Designed for SMALL SCREENS: only two main views—AI CLI (chat / commands) and Fullscreen Text Editor (viewer + edit + diff toggle).
 
+## 🚀 **[Launch PWA →](https://wangchengyeh.github.io/Chat_github/)**
+
+**Quick Start:**
+1. Click the link above to open the app
+2. Type `:config` to set up your GitHub token and OpenAI API key  
+3. Use `:open filename` to load files and start editing with AI assistance
+4. Install as PWA: Look for "Add to Home Screen" (mobile) or install icon (desktop)
+
 ---
 ## 1. Quick Pitch
 - 100% client-side (tokens stay local)
