@@ -40,8 +40,8 @@ export const CLI: React.FC = () => {
     setProcessing(true)
 
     try {
-      if (command.startsWith(':')) {
-        await handleColonCommand(command.slice(1))
+      if (command.startsWith('/')) {
+        await handleSlashCommand(command.slice(1))
       } else {
         await handleAIInstruction(command)
       }
@@ -52,7 +52,7 @@ export const CLI: React.FC = () => {
     }
   }
 
-  const handleColonCommand = async (cmd: string) => {
+  const handleSlashCommand = async (cmd: string) => {
     const [command, ...args] = cmd.split(' ')
     const arg = args.join(' ')
 
@@ -116,12 +116,12 @@ export const CLI: React.FC = () => {
     }
 
     if (!config.openaiKey) {
-      addHistory('OpenAI API key not configured. Use :config to set it up.')
+      addHistory('OpenAI API key not configured. Use /config to set it up.')
       return
     }
 
     if (!file.current) {
-      addHistory('No file loaded. Use :open <path> to load a file first.')
+      addHistory('No file loaded. Use /open <path> to load a file first.')
       return
     }
 
@@ -133,7 +133,7 @@ export const CLI: React.FC = () => {
       const result = await aiService.transformFile(instruction, file.current)
       
       setAI({ lastAIContent: result, pending: false })
-      addHistory('AI transformation completed. Use :apply to apply changes.')
+      addHistory('AI transformation completed. Use /apply to apply changes.')
     } catch (error) {
       setAI({ pending: false })
       throw error
@@ -142,12 +142,12 @@ export const CLI: React.FC = () => {
 
   const openFile = async (path: string) => {
     if (!path) {
-      addHistory('Usage: :open <path>')
+      addHistory('Usage: /open <path>')
       return
     }
 
     if (!config.githubToken || !config.owner || !config.repo) {
-      addHistory('GitHub configuration missing. Use :config to set up.')
+      addHistory('GitHub configuration missing. Use /config to set up.')
       return
     }
 
@@ -214,7 +214,7 @@ export const CLI: React.FC = () => {
 
   const commitChanges = async (message: string) => {
     if (!message) {
-      addHistory('Usage: :commit "commit message"')
+      addHistory('Usage: /commit "commit message"')
       return
     }
 
@@ -252,7 +252,7 @@ export const CLI: React.FC = () => {
 
   const switchBranch = async (branch: string) => {
     if (!branch) {
-      addHistory('Usage: :branch <branch-name>')
+      addHistory('Usage: /branch <branch-name>')
       return
     }
 
@@ -295,19 +295,19 @@ export const CLI: React.FC = () => {
 
   const showHelp = () => {
     const commands = [
-      ':open <path> - Load file from GitHub',
-      ':apply - Apply AI changes to editor',
-      ':diff - Show differences',
-      ':revert - Revert to original',
-      ':commit "msg" - Commit changes',
-      ':branch <name> - Switch branch',
-      ':model <id> - Switch AI model',
-      ':config - Open configuration',
-      ':save - Save draft locally',
-      ':tokens - Estimate token usage',
-      ':editor - Switch to editor',
-      ':clear - Clear history',
-      ':help - Show this help'
+      '/open <path> - Load file from GitHub',
+      '/apply - Apply AI changes to editor',
+      '/diff - Show differences',
+      '/revert - Revert to original',
+      '/commit "msg" - Commit changes',
+      '/branch <name> - Switch branch',
+      '/model <id> - Switch AI model',
+      '/config - Open configuration',
+      '/save - Save draft locally',
+      '/tokens - Estimate token usage',
+      '/editor - Switch to editor',
+      '/clear - Clear history',
+      '/help - Show this help'
     ]
     
     addHistory('Available commands:')
@@ -341,7 +341,7 @@ export const CLI: React.FC = () => {
           onChange={(e) => setInput(e.target.value)}
           disabled={processing}
           className="cli-input"
-          placeholder="輸入指令或AI指示... / Enter command or AI instruction..."
+          placeholder="輸入指令或AI指示... (以/開始指令) / Enter command (start with /) or AI instruction..."
           autoComplete="off"
           lang="zh-TW"
           spellCheck={false}

@@ -7,8 +7,8 @@ A minimal, phone-friendly React PWA for editing GitHub repo files using an AI as
 
 **Quick Start:**
 1. Click the link above to open the app
-2. Type `:config` to set up your GitHub token and OpenAI API key  
-3. Use `:open filename` to load files and start editing with AI assistance
+2. Type `/config` to set up your GitHub token and OpenAI API key  
+3. Use `/open filename` to load files and start editing with AI assistance
 4. Install as PWA: Look for "Add to Home Screen" (mobile) or install icon (desktop)
 
 ---
@@ -24,7 +24,7 @@ A minimal, phone-friendly React PWA for editing GitHub repo files using an AI as
 | Principle | Description |
 |-----------|-------------|
 | Mobile First | No crowded panels; single-surface interactions |
-| Two Modes | :editor and :cli (AI) only |
+| Two Modes | /editor and /cli (AI) only |
 | Command Driven | Fast, predictable, scriptable habits |
 | Full Replacement | AI returns FULL updated file (avoid merge confusion) |
 | Stateless Backend | Pure GitHub + OpenAI APIs; no server owned by app |
@@ -35,7 +35,7 @@ A minimal, phone-friendly React PWA for editing GitHub repo files using an AI as
 ### A. AI CLI Mode
 Scrollable history + bottom input bar. Plain text, low overhead.
 - Interpret plain lines as AI instructions
-- Colon-prefixed lines are commands (e.g. `:open`, `:commit`)
+- Slash-prefixed lines are commands (e.g. `/open`, `/commit`)
 - Shows AI output and system notices
 
 ### B. Editor Mode
@@ -47,37 +47,37 @@ Fullscreen text area (or CodeMirror) with optional diff overlay.
 ---
 ## 4. Minimal Workflow (Example)
 ```
-:open README.md
+/open README.md
 Refetched README.md (sha ...)
 Add a security note about token scope.
 AI proposes new file.
-:apply
+/apply
 Review in editor (dirty*)
-:commit "docs: add token scope note"
+/commit "docs: add token scope note"
 ```
-(Plain sentence = AI instruction. Use `:apply` only when satisfied.)
+(Plain sentence = AI instruction. Use `/apply` only when satisfied.)
 
 ---
 ## 5. CLI Commands
 | Command | Action |
 |---------|--------|
-| :open <path> | Fetch file (sets originalContent, clears AI draft) |
-| :ai <instruction> | Same as plain text; request AI transform |
-| :apply | Apply last AI proposal into editor (dirty=true) |
-| :diff | Show diff (in CLI or switch editor diff mode) |
-| :revert | Restore originalContent (dirty=false) |
-| :commit "msg" | Commit current editor content to branch |
-| :branch <name> | Switch/create branch (planned auto-create) |
-| :model <id> | Switch LLM model config |
-| :config | Open overlay to edit tokens / repo info |
-| :save | Save current edited content locally (draft) |
-| :tokens | Estimate token usage (optional) |
-| :help | List commands |
-| :editor | Switch to editor view |
-| :cli | Switch to AI CLI view |
-| :clear | Clear CLI history display only |
+| /open <path> | Fetch file (sets originalContent, clears AI draft) |
+| /ai <instruction> | Same as plain text; request AI transform |
+| /apply | Apply last AI proposal into editor (dirty=true) |
+| /diff | Show diff (in CLI or switch editor diff mode) |
+| /revert | Restore originalContent (dirty=false) |
+| /commit "msg" | Commit current editor content to branch |
+| /branch <name> | Switch/create branch (planned auto-create) |
+| /model <id> | Switch LLM model config |
+| /config | Open overlay to edit tokens / repo info |
+| /save | Save current edited content locally (draft) |
+| /tokens | Estimate token usage (optional) |
+| /help | List commands |
+| /editor | Switch to editor view |
+| /cli | Switch to AI CLI view |
+| /clear | Clear CLI history display only |
 
-No-colon = AI transform of current file with that sentence as instruction.
+No-slash = AI transform of current file with that sentence as instruction.
 
 ---
 ## 6. Architecture (Slim)
@@ -89,10 +89,10 @@ React (Zustand Store)
   |-- store.ai: { lastInstruction, lastAIContent, pending }
 ```
 Data Flow:
-1. :open → GET contents → decode → store.file.original/current
+1. /open → GET contents → decode → store.file.original/current
 2. Instruction → build prompt → LLM → lastAIContent
-3. :apply → current = lastAIContent (dirty flag)
-4. :commit → PUT new base64 content with sha → update sha + dirty=false
+3. /apply → current = lastAIContent (dirty flag)
+4. /commit → PUT new base64 content with sha → update sha + dirty=false
 
 ---
 ## 7. Installation & Run
@@ -149,9 +149,9 @@ User prompt includes:
 ## 12. Troubleshooting
 | Symptom | Cause | Fix |
 |---------|-------|-----|
-| 401 on :open | Bad token / scope | Regenerate PAT |
-| 404 path | Wrong path / branch | Check :branch and path |
-| 409 commit | Stale sha | :open again before :commit |
+| 401 on /open | Bad token / scope | Regenerate PAT |
+| 404 path | Wrong path / branch | Check /branch and path |
+| 409 commit | Stale sha | /open again before /commit |
 | Empty AI response | Model overloaded | Retry or shorten file |
 | Diff mismatch | AI returned truncated file | Re-run with clearer prompt |
 
@@ -169,12 +169,12 @@ User prompt includes:
 ---
 ## 15. Quick Start (Ultra Short)
 ```
-:open README.md
+/open README.md
 Improve structure of sections about mobile UI.
-:apply
-:commit "docs: restructure mobile UI sections"
+/apply
+/commit "docs: restructure mobile UI sections"
 ```
 
 ---
 Happy mobile editing!  
-Use :help anytime.
+Use /help anytime.
