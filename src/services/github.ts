@@ -9,6 +9,14 @@ interface GitHubCommitResponse {
   }
 }
 
+interface GitHubDirectoryItem {
+  name: string
+  path: string
+  type: 'file' | 'dir'
+  size?: number
+  sha: string
+}
+
 export class GitHubService {
   private token: string
   private owner: string
@@ -58,19 +66,49 @@ export class GitHubService {
     try {
       const encodedContent = btoa(unescape(encodeURIComponent(content)))
       
+      const requestBody: any = {
+        message,
+        content: encodedContent,
+        branch,
+      }
+      
+      // Only include SHA if it exists (for updating existing files)
+      if (sha) {
+        requestBody.sha = sha
+      }
+      
+      const data: GitHubCommitResponse = await this.request(`contents/${path}`, {
+        method: 'PUT',
+        body: JSON.stringify(requestBody),
+      })
+
+      return data.content.sha
+    } catch (error) {
+      throw new Error(`Failed to commit file: ${error}`)
+    }
+  }
+
+  async createFile(
+    path: string, 
+    content: string, 
+    message: string, 
+    branch: string = 'main'
+  ): Promise<string> {
+    try {
+      const encodedContent = btoa(unescape(encodeURIComponent(content)))
+      
       const data: GitHubCommitResponse = await this.request(`contents/${path}`, {
         method: 'PUT',
         body: JSON.stringify({
           message,
           content: encodedContent,
-          sha,
           branch,
         }),
       })
 
       return data.content.sha
     } catch (error) {
-      throw new Error(`Failed to commit file: ${error}`)
+      throw new Error(`Failed to create file: ${error}`)
     }
   }
 
@@ -97,6 +135,34 @@ export class GitHubService {
       return branches.map((branch: { name: string }) => branch.name)
     } catch (error) {
       throw new Error(`Failed to list branches: ${error}`)
+    }
+  }
+
+  async listDirectory(path: string = '', branch: string = 'main'): Promise<GitHubDirectoryItem[]> {
+    try {
+      const data = await this.request(`contents/${path}?ref=${branch}`)
+      
+      // GitHub API returns array for directories, single object for files
+      if (Array.isArray(data)) {
+        return data.map((item: any) => ({
+          name: item.name,
+          path: item.path,
+          type: item.type === 'dir' ? 'dir' : 'file',
+          size: item.size,
+          sha: item.sha
+        }))
+      } else {
+        // Single file
+        return [{
+          name: data.name,
+          path: data.path,
+          type: 'file',
+          size: data.size,
+          sha: data.sha
+        }]
+      }
+    } catch (error) {
+      throw new Error(`Failed to list directory: ${error}`)
     }
   }
 }
