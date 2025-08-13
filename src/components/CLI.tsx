@@ -50,6 +50,7 @@ export const CLI: React.FC = () => {
     ai,
     setAI,
     config,
+    setConfig,
     setMode,
     setShowConfig
   } = useStore()
