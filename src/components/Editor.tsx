@@ -29,13 +29,22 @@ export const Editor: React.FC = () => {
       EditorView.lineWrapping,
       EditorView.theme({
         '.cm-content': {
-          fontFamily: '"SF Pro Display", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "WenQuanYi Zen Hei", sans-serif',
+          fontFamily: '"SF Pro Text", "SF Mono", "PingFang SC", "Hiragino Sans GB", "Noto Sans CJK SC", "Source Han Sans SC", "Microsoft YaHei", "WenQuanYi Zen Hei", "Helvetica Neue", Arial, sans-serif !important',
           lineHeight: '1.6',
           wordBreak: 'break-word',
-          overflowWrap: 'break-word'
+          overflowWrap: 'break-word',
+          fontSize: '14px'
         },
-        '.cm-editor .cm-scroller': {
-          fontFeatureSettings: '"liga" 0, "calt" 0'
+        '.cm-editor': {
+          fontFamily: '"SF Pro Text", "SF Mono", "PingFang SC", "Hiragino Sans GB", "Noto Sans CJK SC", "Source Han Sans SC", "Microsoft YaHei", "WenQuanYi Zen Hei", "Helvetica Neue", Arial, sans-serif !important'
+        },
+        '.cm-scroller': {
+          fontFamily: '"SF Pro Text", "SF Mono", "PingFang SC", "Hiragino Sans GB", "Noto Sans CJK SC", "Source Han Sans SC", "Microsoft YaHei", "WenQuanYi Zen Hei", "Helvetica Neue", Arial, sans-serif !important',
+          fontFeatureSettings: '"liga" 0, "calt" 0',
+          fontSize: '14px !important'
+        },
+        '.cm-line': {
+          fontFamily: '"SF Pro Text", "SF Mono", "PingFang SC", "Hiragino Sans GB", "Noto Sans CJK SC", "Source Han Sans SC", "Microsoft YaHei", "WenQuanYi Zen Hei", "Helvetica Neue", Arial, sans-serif !important'
         }
       })
     ]
@@ -153,8 +162,10 @@ export const Editor: React.FC = () => {
             closeBrackets: true,
             autocompletion: true,
             highlightSelectionMatches: false,
+            searchKeymap: false
           }}
           className={`editor-codemirror ${diffMode === 'diff' ? 'diff-view' : ''}`}
+          placeholder={diffMode === 'modified' ? '在此輸入或編輯文字... / Type or edit text here...' : undefined}
         />
       </div>
 
