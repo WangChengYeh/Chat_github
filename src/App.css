@@ -5,6 +5,14 @@
   padding: 0;
 }
 
+/* Ensure proper Chinese character rendering */
+* {
+  -webkit-font-feature-settings: "kern" 1, "liga" 0, "calt" 0;
+  font-feature-settings: "kern" 1, "liga" 0, "calt" 0;
+  text-rendering: optimizeLegibility;
+  -webkit-text-size-adjust: 100%;
+}
+
 html, body, #root {
   height: 100%;
   overflow: hidden;
@@ -188,9 +196,34 @@ body {
 }
 
 .editor-codemirror .cm-scroller {
-  font-family: 'SF Mono', Monaco, 'Cascadia Code', 'Roboto Mono', Consolas, monospace;
+  font-family: "SF Pro Text", "SF Mono", "PingFang SC", "Hiragino Sans GB", "Noto Sans CJK SC", "Source Han Sans SC", "Microsoft YaHei", "WenQuanYi Zen Hei", Monaco, 'Cascadia Code', 'Roboto Mono', Consolas, monospace !important;
   font-size: 14px;
   line-height: 1.6;
+}
+
+/* Force Chinese font support for CodeMirror */
+.editor-codemirror .cm-content,
+.editor-codemirror .cm-editor,
+.editor-codemirror .cm-line {
+  font-family: "SF Pro Text", "SF Mono", "PingFang SC", "Hiragino Sans GB", "Noto Sans CJK SC", "Source Han Sans SC", "Microsoft YaHei", "WenQuanYi Zen Hei", "Helvetica Neue", Arial, sans-serif !important;
+  font-feature-settings: normal !important;
+  word-break: break-word;
+  overflow-wrap: break-word;
+  unicode-bidi: normal;
+  text-orientation: mixed;
+}
+
+/* Ensure proper character spacing and rendering */
+.editor-codemirror .cm-content {
+  white-space: pre-wrap !important;
+  word-spacing: normal;
+  letter-spacing: normal;
+}
+
+/* Additional fallback for Chinese characters */
+.editor-codemirror {
+  font-variant-ligatures: none;
+  font-variant-numeric: normal;
 }
 
 .diff-view .cm-content {
