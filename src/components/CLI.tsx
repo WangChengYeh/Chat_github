@@ -229,6 +229,7 @@ export const CLI: React.FC = () => {
         return
       } catch (error) {
         // File doesn't exist, which is what we want for creating new file
+        // This is expected behavior
       }
 
       // Create new file with default content based on extension
@@ -237,7 +238,7 @@ export const CLI: React.FC = () => {
       setFile({
         original: '',
         current: defaultContent,
-        sha: '',
+        sha: '', // Empty SHA for new file
         dirty: true
       })
       
@@ -245,9 +246,9 @@ export const CLI: React.FC = () => {
       setConfig({ path })
       
       addHistory(`Created new file: ${path}`)
-      addHistory('File is ready for editing. Use /commit to save it to GitHub.')
+      addHistory('Content loaded in editor. Use /editor to view/edit, then /commit to save.')
     } catch (error) {
-      throw new Error(`Failed to create file: ${error}`)
+      addHistory(`Error creating file: ${error instanceof Error ? error.message : String(error)}`)
     }
   }
 
@@ -394,28 +395,17 @@ export const CLI: React.FC = () => {
     try {
       const github = new GitHubService(config.githubToken, config.owner, config.repo)
       
-      let newSha: string
+      // updateFile handles both new files (no SHA) and existing files (with SHA)
+      const newSha = await github.updateFile(
+        config.path, 
+        file.current, 
+        file.sha, // Will be empty string for new files
+        message, 
+        config.branch
+      )
       
-      if (file.sha) {
-        // Updating existing file
-        newSha = await github.updateFile(
-          config.path, 
-          file.current, 
-          file.sha, 
-          message, 
-          config.branch
-        )
-        addHistory(`Updated: ${message} (sha: ${newSha.substring(0, 7)})`)
-      } else {
-        // Creating new file
-        newSha = await github.createFile(
-          config.path, 
-          file.current, 
-          message, 
-          config.branch
-        )
-        addHistory(`Created: ${message} (sha: ${newSha.substring(0, 7)})`)
-      }
+      const action = file.sha ? 'Updated' : 'Created'
+      addHistory(`${action}: ${message} (sha: ${newSha.substring(0, 7)})`)
       
       setFile({
         original: file.current,

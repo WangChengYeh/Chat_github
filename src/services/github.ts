@@ -73,7 +73,7 @@ export class GitHubService {
       }
       
       // Only include SHA if it exists (for updating existing files)
-      if (sha) {
+      if (sha && sha.trim() !== '') {
         requestBody.sha = sha
       }
       
@@ -88,29 +88,6 @@ export class GitHubService {
     }
   }
 
-  async createFile(
-    path: string, 
-    content: string, 
-    message: string, 
-    branch: string = 'main'
-  ): Promise<string> {
-    try {
-      const encodedContent = btoa(unescape(encodeURIComponent(content)))
-      
-      const data: GitHubCommitResponse = await this.request(`contents/${path}`, {
-        method: 'PUT',
-        body: JSON.stringify({
-          message,
-          content: encodedContent,
-          branch,
-        }),
-      })
-
-      return data.content.sha
-    } catch (error) {
-      throw new Error(`Failed to create file: ${error}`)
-    }
-  }
 
   async createBranch(newBranch: string, fromBranch: string = 'main'): Promise<void> {
     try {
