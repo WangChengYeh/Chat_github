@@ -4,6 +4,7 @@ import { javascript } from '@codemirror/lang-javascript'
 import { markdown } from '@codemirror/lang-markdown'
 import { json } from '@codemirror/lang-json'
 import { oneDark } from '@codemirror/theme-one-dark'
+import { EditorView } from '@codemirror/view'
 import { useStore } from '../store'
 import { DiffService } from '../services/diff'
 
@@ -23,19 +24,35 @@ export const Editor: React.FC = () => {
   const getLanguageExtension = (path: string) => {
     const ext = path.split('.').pop()?.toLowerCase()
     
+    // Chinese text support extensions
+    const chineseSupport = [
+      EditorView.lineWrapping,
+      EditorView.theme({
+        '.cm-content': {
+          fontFamily: '"SF Pro Display", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "WenQuanYi Zen Hei", sans-serif',
+          lineHeight: '1.6',
+          wordBreak: 'break-word',
+          overflowWrap: 'break-word'
+        },
+        '.cm-editor .cm-scroller': {
+          fontFeatureSettings: '"liga" 0, "calt" 0'
+        }
+      })
+    ]
+    
     switch (ext) {
       case 'js':
       case 'jsx':
       case 'ts':
       case 'tsx':
-        return [javascript({ jsx: true, typescript: ext.includes('ts') })]
+        return [javascript({ jsx: true, typescript: ext.includes('ts') }), ...chineseSupport]
       case 'md':
       case 'markdown':
-        return [markdown()]
+        return [markdown(), ...chineseSupport]
       case 'json':
-        return [json()]
+        return [json(), ...chineseSupport]
       default:
-        return []
+        return chineseSupport
     }
   }
 
