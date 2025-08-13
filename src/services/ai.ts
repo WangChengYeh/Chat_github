@@ -10,14 +10,16 @@ export class AIService {
   }
 
   async transformFile(instruction: string, currentContent: string): Promise<string> {
-    const systemPrompt = `You rewrite the whole file based on the instruction. Return ONLY the full updated file with no explanations.`
+    const systemPrompt = `You rewrite the whole file based on the instruction. Return ONLY the full updated file with no explanations. Support Chinese text properly and preserve Chinese characters, formatting, and encoding.`
     
     const userPrompt = `Instruction: ${instruction}
 
 Current file content:
 ---START FILE---
 ${currentContent}
----END FILE---`
+---END FILE---
+
+Note: If working with Chinese text, preserve proper character encoding and formatting. Handle both Traditional Chinese (繁體中文) and Simplified Chinese (简体中文) correctly.`
 
     try {
       const response = await fetch('https://api.openai.com/v1/chat/completions', {
