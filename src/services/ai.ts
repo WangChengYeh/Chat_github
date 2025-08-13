@@ -1,0 +1,59 @@
+export class AIService {
+  private apiKey: string
+  private model: string
+  private temperature: number
+
+  constructor(apiKey: string, model: string = 'gpt-4o-mini', temperature: number = 0.3) {
+    this.apiKey = apiKey
+    this.model = model
+    this.temperature = temperature
+  }
+
+  async transformFile(instruction: string, currentContent: string): Promise<string> {
+    const systemPrompt = `You rewrite the whole file based on the instruction. Return ONLY the full updated file with no explanations.`
+    
+    const userPrompt = `Instruction: ${instruction}
+
+Current file content:
+---START FILE---
+${currentContent}
+---END FILE---`
+
+    try {
+      const response = await fetch('https://api.openai.com/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${this.apiKey}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          model: this.model,
+          messages: [
+            { role: 'system', content: systemPrompt },
+            { role: 'user', content: userPrompt }
+          ],
+          temperature: this.temperature,
+          max_tokens: 4000,
+        }),
+      })
+
+      if (!response.ok) {
+        throw new Error(`OpenAI API error: ${response.status} ${response.statusText}`)
+      }
+
+      const data = await response.json()
+      
+      if (!data.choices || data.choices.length === 0) {
+        throw new Error('No response from AI')
+      }
+
+      return data.choices[0].message.content.trim()
+    } catch (error) {
+      throw new Error(`Failed to transform file: ${error}`)
+    }
+  }
+
+  async estimateTokens(text: string): Promise<number> {
+    return Math.ceil(text.length / 4)
+  }
+}
