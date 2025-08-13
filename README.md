@@ -32,6 +32,8 @@ A minimal, phone-friendly React PWA for editing GitHub repository files using AI
 
 ### 🔧 **Technical Features**
 - **Syntax Highlighting**: JavaScript, TypeScript, Markdown, JSON
+- **File Management**: Create, browse, and preview files with `/new`, `/ls`, `/cat`
+- **Smart Templates**: Auto-generated boilerplate for common file types
 - **Diff Viewer**: Visual comparison with Original → Modified → Diff modes
 - **Live Preview**: Real-time file editing with CodeMirror
 - **Smart Commits**: Automated git operations with proper SHA handling
@@ -72,6 +74,9 @@ A minimal, phone-friendly React PWA for editing GitHub repository files using AI
 | Command | Description | Example |
 |---------|-------------|---------|
 | `/open <path>` | Load file from GitHub | `/open src/App.tsx` |
+| `/new <path>` | Create new file with template | `/new src/NewComponent.tsx` |
+| `/ls [path]` | List files in directory | `/ls src/` |
+| `/cat <path>` | Show file contents | `/cat package.json` |
 | `/save` | Save draft to localStorage | `/save` |
 | `/revert` | Restore to original content | `/revert` |
 
@@ -208,6 +213,23 @@ Add installation instructions        # AI instruction
 /apply                              # Apply changes
 /editor                             # Review in editor
 /commit "docs: add installation"    # Save changes
+```
+
+### **Creating New Files**
+```bash
+/config                              # Setup tokens
+/ls                                  # Browse repository
+/new src/components/Header.tsx       # Create new React component
+/editor                             # Switch to editor for coding
+/commit "feat: add header component" # Save to GitHub
+```
+
+### **File Exploration**
+```bash
+/ls                                  # List root directory
+/ls src/                            # List src folder
+/cat package.json                   # View file contents
+/open src/App.tsx                   # Load for editing
 ```
 
 ### **Code Refactoring**

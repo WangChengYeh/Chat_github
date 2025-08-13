@@ -4,6 +4,37 @@ import { GitHubService } from '../services/github'
 import { AIService } from '../services/ai'
 import { DiffService } from '../services/diff'
 
+const getDefaultFileContent = (path: string): string => {
+  const ext = path.split('.').pop()?.toLowerCase()
+  const filename = path.split('/').pop() || 'file'
+  
+  switch (ext) {
+    case 'md':
+    case 'markdown':
+      return `# ${filename.replace(/\.(md|markdown)$/, '')}\n\nAdd your content here...\n`
+    case 'js':
+      return `// ${filename}\n\nconsole.log('Hello from ${filename}');\n`
+    case 'jsx':
+      return `// ${filename}\nimport React from 'react';\n\nconst Component = () => {\n  return (\n    <div>\n      <h1>New Component</h1>\n    </div>\n  );\n};\n\nexport default Component;\n`
+    case 'ts':
+      return `// ${filename}\n\ninterface Config {\n  message: string;\n}\n\nconst config: Config = {\n  message: 'Hello from ${filename}'\n};\n\nconsole.log(config.message);\n`
+    case 'tsx':
+      return `// ${filename}\nimport React from 'react';\n\ninterface Props {\n  title?: string;\n}\n\nconst Component: React.FC<Props> = ({ title = 'New Component' }) => {\n  return (\n    <div>\n      <h1>{title}</h1>\n    </div>\n  );\n};\n\nexport default Component;\n`
+    case 'json':
+      return `{\n  "name": "${filename.replace(/\.json$/, '')}",\n  "version": "1.0.0",\n  "description": "Add description here"\n}\n`
+    case 'css':
+      return `/* ${filename} */\n\n.container {\n  display: flex;\n  flex-direction: column;\n  gap: 1rem;\n}\n`
+    case 'html':
+      return `<!DOCTYPE html>\n<html lang="en">\n<head>\n  <meta charset="UTF-8">\n  <meta name="viewport" content="width=device-width, initial-scale=1.0">\n  <title>${filename.replace(/\.html$/, '')}</title>\n</head>\n<body>\n  <h1>Hello World</h1>\n</body>\n</html>\n`
+    case 'py':
+      return `# ${filename}\n\ndef main():\n    print("Hello from ${filename}")\n\nif __name__ == "__main__":\n    main()\n`
+    case 'txt':
+      return `${filename}\n${'='.repeat(filename.length)}\n\nAdd your text content here...\n`
+    default:
+      return `# ${filename}\n\n# Add your content here...\n`
+  }
+}
+
 export const CLI: React.FC = () => {
   const [input, setInput] = useState('')
   const [processing, setProcessing] = useState(false)
@@ -59,6 +90,15 @@ export const CLI: React.FC = () => {
     switch (command) {
       case 'open':
         await openFile(arg)
+        break
+      case 'new':
+        await createNewFile(arg)
+        break
+      case 'ls':
+        await listFiles(arg || '')
+        break
+      case 'cat':
+        await showFileContent(arg)
         break
       case 'apply':
         applyAIChanges()
@@ -168,6 +208,124 @@ export const CLI: React.FC = () => {
     }
   }
 
+  const createNewFile = async (path: string) => {
+    if (!path) {
+      addHistory('Usage: /new <path>')
+      return
+    }
+
+    if (!config.githubToken || !config.owner || !config.repo) {
+      addHistory('GitHub configuration missing. Use /config to set up.')
+      return
+    }
+
+    try {
+      // Check if file already exists
+      const github = new GitHubService(config.githubToken, config.owner, config.repo)
+      
+      try {
+        await github.getFile(path, config.branch)
+        addHistory(`File ${path} already exists. Use /open to edit it.`)
+        return
+      } catch (error) {
+        // File doesn't exist, which is what we want for creating new file
+      }
+
+      // Create new file with default content based on extension
+      const defaultContent = getDefaultFileContent(path)
+      
+      setFile({
+        original: '',
+        current: defaultContent,
+        sha: '',
+        dirty: true
+      })
+      
+      // Update config path for this session
+      setConfig({ path })
+      
+      addHistory(`Created new file: ${path}`)
+      addHistory('File is ready for editing. Use /commit to save it to GitHub.')
+    } catch (error) {
+      throw new Error(`Failed to create file: ${error}`)
+    }
+  }
+
+  const listFiles = async (path: string) => {
+    if (!config.githubToken || !config.owner || !config.repo) {
+      addHistory('GitHub configuration missing. Use /config to set up.')
+      return
+    }
+
+    try {
+      const github = new GitHubService(config.githubToken, config.owner, config.repo)
+      const items = await github.listDirectory(path, config.branch)
+      
+      addHistory(`Contents of ${path || 'root'}:`)
+      
+      // Sort directories first, then files
+      const sorted = items.sort((a, b) => {
+        if (a.type === b.type) {
+          return a.name.localeCompare(b.name)
+        }
+        return a.type === 'dir' ? -1 : 1
+      })
+      
+      sorted.forEach(item => {
+        const icon = item.type === 'dir' ? '📁' : '📄'
+        const size = item.size ? ` (${formatFileSize(item.size)})` : ''
+        addHistory(`${icon} ${item.name}${size}`)
+      })
+      
+      addHistory(`\nFound ${items.length} items`)
+    } catch (error) {
+      throw new Error(`Failed to list files: ${error}`)
+    }
+  }
+
+  const showFileContent = async (path: string) => {
+    if (!path) {
+      addHistory('Usage: /cat <path>')
+      return
+    }
+
+    if (!config.githubToken || !config.owner || !config.repo) {
+      addHistory('GitHub configuration missing. Use /config to set up.')
+      return
+    }
+
+    try {
+      const github = new GitHubService(config.githubToken, config.owner, config.repo)
+      const { content } = await github.getFile(path, config.branch)
+      
+      addHistory(`Content of ${path}:`)
+      addHistory('─'.repeat(50))
+      
+      // Limit content display to prevent overwhelming the CLI
+      const lines = content.split('\n')
+      if (lines.length > 50) {
+        lines.slice(0, 50).forEach(line => addHistory(line))
+        addHistory('─'.repeat(50))
+        addHistory(`... (showing first 50 lines of ${lines.length})`)
+        addHistory('Use /open to load the full file for editing')
+      } else {
+        lines.forEach(line => addHistory(line))
+        addHistory('─'.repeat(50))
+      }
+      
+    } catch (error) {
+      throw new Error(`Failed to show file content: ${error}`)
+    }
+  }
+
+  const formatFileSize = (bytes: number): string => {
+    if (bytes === 0) return '0 B'
+    const k = 1024
+    const sizes = ['B', 'KB', 'MB', 'GB']
+    const i = Math.floor(Math.log(bytes) / Math.log(k))
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i]
+  }
+
   const applyAIChanges = () => {
     if (!ai.lastAIContent) {
       addHistory('No AI changes to apply')
@@ -218,8 +376,13 @@ export const CLI: React.FC = () => {
       return
     }
 
-    if (!file.current || !file.sha) {
-      addHistory('No file loaded or no changes to commit')
+    if (!file.current) {
+      addHistory('No content to commit')
+      return
+    }
+
+    if (!config.path) {
+      addHistory('No file path set. Use /open or /new first.')
       return
     }
 
@@ -230,13 +393,29 @@ export const CLI: React.FC = () => {
 
     try {
       const github = new GitHubService(config.githubToken, config.owner, config.repo)
-      const newSha = await github.updateFile(
-        config.path, 
-        file.current, 
-        file.sha, 
-        message, 
-        config.branch
-      )
+      
+      let newSha: string
+      
+      if (file.sha) {
+        // Updating existing file
+        newSha = await github.updateFile(
+          config.path, 
+          file.current, 
+          file.sha, 
+          message, 
+          config.branch
+        )
+        addHistory(`Updated: ${message} (sha: ${newSha.substring(0, 7)})`)
+      } else {
+        // Creating new file
+        newSha = await github.createFile(
+          config.path, 
+          file.current, 
+          message, 
+          config.branch
+        )
+        addHistory(`Created: ${message} (sha: ${newSha.substring(0, 7)})`)
+      }
       
       setFile({
         original: file.current,
@@ -244,7 +423,6 @@ export const CLI: React.FC = () => {
         dirty: false
       })
       
-      addHistory(`Committed: ${message} (sha: ${newSha.substring(0, 7)})`)
     } catch (error) {
       throw new Error(`Commit failed: ${error}`)
     }
@@ -296,6 +474,9 @@ export const CLI: React.FC = () => {
   const showHelp = () => {
     const commands = [
       '/open <path> - Load file from GitHub',
+      '/new <path> - Create new file with template',
+      '/ls [path] - List files in directory',
+      '/cat <path> - Show file contents',
       '/apply - Apply AI changes to editor',
       '/diff - Show differences',
       '/revert - Revert to original',
