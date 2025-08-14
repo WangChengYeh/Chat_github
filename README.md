@@ -349,7 +349,7 @@ npm run typecheck       # Verify TypeScript compilation
 npm run build           # Test production build
 ```
 
-### **Manual Test Flows**
+### **Test Flows**
 
 #### **🧪 Test Case 1: Basic File Editing Workflow**
 **Purpose**: Verify core file editing functionality with AI assistance
@@ -362,7 +362,7 @@ npm run build           # Test production build
 # Test Execution
 /open README.md                      # Expected: File loaded, shows content
 /editor                             # Expected: Switch to editor mode
-# Manual: Add text "Test modification"
+# UI: Add text "Test modification"
 /cli                                # Expected: Return to CLI mode
 Add installation instructions        # Expected: AI processing starts
 /apply                              # Expected: Changes applied to editor
@@ -386,7 +386,7 @@ Add installation instructions        # Expected: AI processing starts
 /ls src/                            # Expected: Shows src directory contents
 /new src/components/TestHeader.tsx   # Expected: Creates file with React template
 /editor                             # Expected: Shows template content
-# Manual: Verify TypeScript template is loaded
+# UI: Verify TypeScript template is loaded
 /cli
 /commit "feat: add test header component" # Expected: New file committed
 
@@ -427,7 +427,7 @@ Add installation instructions        # Expected: AI processing starts
 
 # Test Execution
 /tool                               # Expected: Opens Tool mode UI
-# Manual Steps in Tool Mode:
+# Steps in Tool Mode:
 # 1. Verify GitHub/WebSocket mode toggle works
 # 2. Select a small test file (< 1MB)
 # 3. Enter path: "test-uploads/sample.txt"
@@ -461,7 +461,7 @@ Add installation instructions        # Expected: AI processing starts
 /socket connect ws://localhost:8080  # Expected: Connection established
 /socket status                      # Expected: Shows connected status
 /upload test-document.pdf           # Expected: File picker opens
-# Manual: Select a PDF file
+# UI: Select a PDF file
 # Expected: Upload progress, server confirmation
 /download test-document.pdf         # Expected: File downloaded to device
 /socket exec ls websocket_files     # Expected: Shows uploaded files
@@ -485,7 +485,7 @@ Add installation instructions        # Expected: AI processing starts
 # Test Execution
 /new src/test-utils.js              # Expected: Creates JS file with template
 /editor                             # Expected: Shows JavaScript template
-# Manual: Replace template with simple JS function
+# UI: Replace template with simple JS function
 /cli
 Convert to TypeScript with types    # Expected: AI processes JavaScript → TypeScript
 /apply                              # Expected: Code transformed to TypeScript
@@ -509,7 +509,7 @@ Convert to TypeScript with types    # Expected: AI processes JavaScript → Type
 # Test Execution
 /new 中文测试.md                     # Expected: Creates file with Chinese filename
 /editor                             # Expected: Opens editor, shows Chinese filename
-# Manual: Enter mixed Chinese/English content
+# UI: Enter mixed Chinese/English content
 # "这是一个测试文件 This is a test file 中英文混合"
 /cli
 为这个文件添加更多中文内容              # Expected: AI responds to Chinese instruction
@@ -554,12 +554,12 @@ Invalid command syntax              # Expected: Unknown command error
 # Test with files > 100KB
 /cat large-file.json                # Expected: Content truncated with warning
 /open large-file.json               # Expected: Loads but may warn about size
-# Manual: Test editor performance with large file
+# UI: Test editor performance with large file
 ```
 
 #### **🧪 Test Case 10: Mobile Responsiveness**
 ```bash  
-# Manual test on mobile device (or DevTools mobile view)
+# UI test on mobile device (or DevTools mobile view)
 # 1. Test touch interactions in all three modes
 # 2. Verify command input works with on-screen keyboard
 # 3. Test file picker on mobile
