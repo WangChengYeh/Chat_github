@@ -29,9 +29,12 @@ export interface WebSocketState {
   url: string
   status: 'connecting' | 'connected' | 'disconnected' | 'error'
   messages: Array<{
-    type: 'stdin' | 'stdout' | 'stderr' | 'command' | 'status' | 'error'
+    type: 'stdin' | 'stdout' | 'stderr' | 'command' | 'status' | 'error' | 'file_upload' | 'file_download' | 'file_data'
     data: string
     timestamp: number
+    filename?: string
+    fileSize?: number
+    isBase64?: boolean
   }>
 }
 

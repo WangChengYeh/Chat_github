@@ -110,6 +110,12 @@ export const CLI: React.FC = () => {
       case 'socket':
         await handleSocketCommand(arg)
         break
+      case 'upload':
+        await handleUploadCommand(arg)
+        break
+      case 'download':
+        await handleDownloadCommand(arg)
+        break
       case 'apply':
         applyAIChanges()
         break
@@ -407,6 +413,9 @@ export const CLI: React.FC = () => {
             case 'error':
               addHistory(`[${timestamp}] ERROR: ${message.data}`)
               break
+            case 'file_data':
+              handleFileDataReceived(message)
+              break
           }
         },
         (status) => {
@@ -492,6 +501,165 @@ export const CLI: React.FC = () => {
     lines.forEach(line => addHistory(line))
     addHistory('─'.repeat(50))
     addHistory(`Save as websocket-server.js and run: node websocket-server.js`)
+  }
+
+  const handleUploadCommand = async (filename: string) => {
+    if (!filename) {
+      addHistory('Usage: /upload <filename>')
+      addHistory('This will send a file from the local device to the WebSocket server')
+      return
+    }
+
+    if (!wsService || !wsService.isConnected()) {
+      addHistory('Not connected to WebSocket server. Use /socket connect <url> first.')
+      return
+    }
+
+    try {
+      // Create file input element
+      const fileInput = document.createElement('input')
+      fileInput.type = 'file'
+      fileInput.multiple = false
+      fileInput.style.display = 'none'
+      
+      // Add to DOM temporarily
+      document.body.appendChild(fileInput)
+      
+      // Create promise to handle file selection
+      const fileSelected = new Promise<File | null>((resolve) => {
+        fileInput.onchange = (event) => {
+          const target = event.target as HTMLInputElement
+          const file = target.files?.[0] || null
+          resolve(file)
+        }
+        
+        fileInput.oncancel = () => {
+          resolve(null)
+        }
+      })
+      
+      // Trigger file picker
+      addHistory(`Opening file picker for upload...`)
+      fileInput.click()
+      
+      // Wait for file selection
+      const selectedFile = await fileSelected
+      
+      // Clean up
+      document.body.removeChild(fileInput)
+      
+      if (!selectedFile) {
+        addHistory('Upload cancelled')
+        return
+      }
+      
+      addHistory(`Selected: ${selectedFile.name} (${formatFileSize(selectedFile.size)})`)
+      
+      // Check if it's a text file or binary
+      const isTextFile = selectedFile.type.startsWith('text/') || 
+                        selectedFile.name.endsWith('.md') ||
+                        selectedFile.name.endsWith('.json') ||
+                        selectedFile.name.endsWith('.js') ||
+                        selectedFile.name.endsWith('.ts') ||
+                        selectedFile.name.endsWith('.tsx') ||
+                        selectedFile.name.endsWith('.jsx') ||
+                        selectedFile.name.endsWith('.css') ||
+                        selectedFile.name.endsWith('.html') ||
+                        selectedFile.name.endsWith('.txt')
+
+      let content: string
+      
+      if (isTextFile) {
+        // Read as text
+        content = await selectedFile.text()
+        addHistory('Processing as text file...')
+      } else {
+        // Read as binary and base64 encode
+        const arrayBuffer = await selectedFile.arrayBuffer()
+        const uint8Array = new Uint8Array(arrayBuffer)
+        content = btoa(String.fromCharCode(...uint8Array))
+        addHistory('Processing as binary file (base64 encoded)...')
+      }
+      
+      // Send via WebSocket
+      wsService.sendFileUpload(filename, content, !isTextFile)
+      addHistory(`📤 Uploading ${filename} to server...`)
+      
+    } catch (error) {
+      addHistory(`Upload failed: ${error instanceof Error ? error.message : error}`)
+    }
+  }
+
+  const handleDownloadCommand = async (filename: string) => {
+    if (!filename) {
+      addHistory('Usage: /download <filename>')
+      addHistory('This will request a file from the WebSocket server')
+      return
+    }
+
+    if (!wsService || !wsService.isConnected()) {
+      addHistory('Not connected to WebSocket server. Use /socket connect <url> first.')
+      return
+    }
+
+    try {
+      wsService.requestFileDownload(filename)
+      addHistory(`📥 Requesting download: ${filename}`)
+      addHistory('Waiting for server response...')
+      
+    } catch (error) {
+      addHistory(`Download failed: ${error instanceof Error ? error.message : error}`)
+    }
+  }
+
+  const handleFileDataReceived = (message: any) => {
+    try {
+      const filename = message.filename || 'downloaded_file'
+      const fileSize = message.fileSize || 0
+      const isBase64 = message.isBase64 || false
+      
+      addHistory(`📥 Received file: ${filename} (${formatFileSize(fileSize)})`)
+      
+      let blob: Blob
+      let mimeType = 'application/octet-stream'
+      
+      if (isBase64) {
+        // Binary file - decode base64
+        const binaryString = atob(message.data)
+        const bytes = new Uint8Array(binaryString.length)
+        for (let i = 0; i < binaryString.length; i++) {
+          bytes[i] = binaryString.charCodeAt(i)
+        }
+        blob = new Blob([bytes], { type: mimeType })
+      } else {
+        // Text file
+        mimeType = 'text/plain'
+        blob = new Blob([message.data], { type: mimeType })
+      }
+      
+      // Create download link
+      const url = URL.createObjectURL(blob)
+      const downloadLink = document.createElement('a')
+      downloadLink.href = url
+      downloadLink.download = filename
+      downloadLink.style.display = 'none'
+      
+      // Add to DOM and trigger download
+      document.body.appendChild(downloadLink)
+      downloadLink.click()
+      
+      // Clean up
+      setTimeout(() => {
+        document.body.removeChild(downloadLink)
+        URL.revokeObjectURL(url)
+      }, 100)
+      
+      addHistory(`✅ Download complete: ${filename}`)
+      addHistory(`📁 Check your Downloads folder`)
+      
+    } catch (error) {
+      addHistory(`File processing failed: ${error instanceof Error ? error.message : error}`)
+    }
   }
 
   const applyAIChanges = () => {
@@ -634,6 +802,8 @@ export const CLI: React.FC = () => {
       '/new <path> - Create new file with template',
       '/ls [path] - List files in directory',
       '/cat <path> - Show file contents',
+      '/upload <filename> - Upload file via WebSocket',
+      '/download <filename> - Download file via WebSocket',
       '/socket <cmd> - WebSocket console operations',
       '/apply - Apply AI changes to editor',
       '/diff - Show differences',
@@ -656,7 +826,11 @@ export const CLI: React.FC = () => {
     addHistory('  connect <url> - Connect to WebSocket server')
     addHistory('  exec <cmd>    - Execute remote command')
     addHistory('  send <msg>    - Send message to stdin')
-    addHistory('  server        - Show server template')
+    addHistory('  server [port] - Show server template with file support')
+    addHistory('')
+    addHistory('File Transfer (requires WebSocket connection):')
+    addHistory('  /upload <filename>   - Send file to server')
+    addHistory('  /download <filename> - Receive file from server')
   }
 
   const handleSubmit = (e: React.FormEvent) => {
