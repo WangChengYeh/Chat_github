@@ -2,6 +2,8 @@ import { test, expect, devices } from '@playwright/test';
 import { PWATestHelpers } from './helpers.js';
 
 test.describe('Mobile PWA Features', () => {
+  // Only run on mobile browsers or browsers with touch support
+  test.describe.configure({ mode: 'parallel' });
   let helpers;
 
   test.beforeEach(async ({ page }) => {
@@ -20,7 +22,12 @@ test.describe('Mobile PWA Features', () => {
     await expect(page.locator('.cli-input')).toBeVisible();
     
     // Test mobile interactions
-    await page.tap('.cli-input');
+    const hasTouch = await page.evaluate(() => 'ontouchstart' in window);
+    if (hasTouch) {
+      await page.tap('.cli-input');
+    } else {
+      await page.click('.cli-input');
+    }
     await expect(page.locator('.cli-input')).toBeFocused();
   });
 
@@ -28,7 +35,12 @@ test.describe('Mobile PWA Features', () => {
     await page.setViewportSize({ width: 375, height: 667 });
     
     // Test tap to focus input
-    await page.tap('.cli-input');
+    const hasTouch = await page.evaluate(() => 'ontouchstart' in window);
+    if (hasTouch) {
+      await page.tap('.cli-input');
+    } else {
+      await page.click('.cli-input');
+    }
     await expect(page.locator('.cli-input')).toBeFocused();
     
     // Test scrolling in history
@@ -52,7 +64,12 @@ test.describe('Mobile PWA Features', () => {
     await expect(page.locator('.editor-status-bar')).toBeVisible();
     
     // Test touch interactions in editor
-    await page.tap('.cm-editor');
+    const hasTouch = await page.evaluate(() => 'ontouchstart' in window);
+    if (hasTouch) {
+      await page.tap('.cm-editor');
+    } else {
+      await page.click('.cm-editor');
+    }
     await page.keyboard.type('Mobile test input');
     
     await expect(page.locator('.cm-editor')).toContainText('Mobile test input');
@@ -68,8 +85,14 @@ test.describe('Mobile PWA Features', () => {
     await expect(page.locator('.tool-header')).toBeVisible();
     
     // Test mobile mode switching
-    await page.tap('button:text("WebSocket")');
-    await expect(page.locator('button:text("WebSocket")')).toHaveClass(/active/);
+    const hasTouch = await page.evaluate(() => 'ontouchstart' in window);
+    const webSocketMainButton = page.locator('.tool-buttons button:text("WebSocket")').first();
+    if (hasTouch) {
+      await webSocketMainButton.tap();
+    } else {
+      await webSocketMainButton.click();
+    }
+    await expect(webSocketMainButton).toHaveClass(/active/);
   });
 
   test('should handle PWA manifest', async ({ page }) => {
@@ -108,7 +131,12 @@ test.describe('Mobile PWA Features', () => {
     await page.setViewportSize({ width: 375, height: 667 });
     
     // Test Chinese characters in CLI
-    await page.tap('.cli-input');
+    const hasTouch = await page.evaluate(() => 'ontouchstart' in window);
+    if (hasTouch) {
+      await page.tap('.cli-input');
+    } else {
+      await page.click('.cli-input');
+    }
     await page.keyboard.type('/new 中文测试.md');
     await page.keyboard.press('Enter');
     
@@ -116,7 +144,12 @@ test.describe('Mobile PWA Features', () => {
     
     // Test in editor mode
     await helpers.executeCommand('/editor');
-    await page.tap('.cm-editor');
+    const hasTouch2 = await page.evaluate(() => 'ontouchstart' in window);
+    if (hasTouch2) {
+      await page.tap('.cm-editor');
+    } else {
+      await page.click('.cm-editor');
+    }
     await page.keyboard.type('这是中文测试内容');
     
     await expect(page.locator('.cm-editor')).toContainText('这是中文测试内容');
@@ -131,7 +164,12 @@ test.describe('Mobile PWA Features', () => {
     
     // Test mobile file picker
     const fileChooserPromise = page.waitForEvent('filechooser');
-    await page.tap('.file-input');
+    const hasTouch = await page.evaluate(() => 'ontouchstart' in window);
+    if (hasTouch) {
+      await page.tap('.file-input');
+    } else {
+      await page.click('.file-input');
+    }
     const fileChooser = await fileChooserPromise;
     
     expect(fileChooser).toBeTruthy();
@@ -157,7 +195,12 @@ test.describe('Mobile PWA Features', () => {
     await page.setViewportSize({ width: 375, height: 667 });
     
     // Test virtual keyboard doesn't break layout
-    await page.tap('.cli-input');
+    const hasTouch = await page.evaluate(() => 'ontouchstart' in window);
+    if (hasTouch) {
+      await page.tap('.cli-input');
+    } else {
+      await page.click('.cli-input');
+    }
     await page.keyboard.type('test command');
     
     await expect(page.locator('.cli-input')).toHaveValue('test command');

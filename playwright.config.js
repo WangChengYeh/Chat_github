@@ -49,7 +49,11 @@ export default defineConfig({
 
     {
       name: 'webkit',
-      use: { ...devices['iPhone 12'] },
+      use: { 
+        ...devices['iPhone 12'],
+        hasTouch: true,
+        isMobile: true 
+      },
     },
 
     {
