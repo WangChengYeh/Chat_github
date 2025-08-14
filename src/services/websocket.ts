@@ -1,7 +1,10 @@
 interface WebSocketMessage {
-  type: 'stdin' | 'stdout' | 'stderr' | 'command' | 'status' | 'error'
+  type: 'stdin' | 'stdout' | 'stderr' | 'command' | 'status' | 'error' | 'file_upload' | 'file_download' | 'file_data'
   data: string
   timestamp: number
+  filename?: string
+  fileSize?: number
+  isBase64?: boolean
 }
 
 export class WebSocketService {
@@ -92,6 +95,26 @@ export class WebSocketService {
     })
   }
 
+  sendFileUpload(filename: string, content: string, isBase64: boolean = false): void {
+    this.sendMessage({
+      type: 'file_upload',
+      data: content,
+      filename,
+      fileSize: content.length,
+      isBase64,
+      timestamp: Date.now()
+    })
+  }
+
+  requestFileDownload(filename: string): void {
+    this.sendMessage({
+      type: 'file_download',
+      data: filename,
+      filename,
+      timestamp: Date.now()
+    })
+  }
+
   private sendMessage(message: WebSocketMessage): void {
     if (this.ws && this.ws.readyState === WebSocket.OPEN) {
       this.ws.send(JSON.stringify(message))
@@ -127,15 +150,24 @@ export class WebSocketService {
 // WebSocket server creation utility (for documentation/example)
 export const createWebSocketServer = (port: number = 8080): string => {
   return `
-# WebSocket Server Example (Node.js)
+# WebSocket Server with File Transfer Support (Node.js)
 # Save as websocket-server.js and run with: node websocket-server.js
 
 const WebSocket = require('ws');
 const { spawn } = require('child_process');
+const fs = require('fs');
+const path = require('path');
 
 const wss = new WebSocket.Server({ port: ${port} });
 
 console.log(\`WebSocket server running on ws://localhost:${port}\`);
+console.log('Supports: Commands, File Upload/Download');
+
+// File storage directory
+const filesDir = './websocket_files';
+if (!fs.existsSync(filesDir)) {
+  fs.mkdirSync(filesDir);
+}
 
 wss.on('connection', (ws) => {
   console.log('Client connected');
@@ -190,6 +222,89 @@ wss.on('connection', (ws) => {
       } else if (data.type === 'stdin' && currentProcess) {
         // Send input to process
         currentProcess.stdin.write(data.data);
+        
+      } else if (data.type === 'file_upload') {
+        // Handle file upload
+        const filename = data.filename || 'uploaded_file';
+        const filepath = path.join(filesDir, filename);
+        
+        try {
+          let fileContent;
+          if (data.isBase64) {
+            // Binary file - decode base64
+            fileContent = Buffer.from(data.data, 'base64');
+          } else {
+            // Text file
+            fileContent = data.data;
+          }
+          
+          fs.writeFileSync(filepath, fileContent);
+          
+          ws.send(JSON.stringify({
+            type: 'status',
+            data: \`File uploaded: \${filename} (\${data.fileSize} bytes)\`,
+            timestamp: Date.now()
+          }));
+          
+          console.log(\`File uploaded: \${filepath}\`);
+          
+        } catch (error) {
+          ws.send(JSON.stringify({
+            type: 'error',
+            data: \`Upload failed: \${error.message}\`,
+            timestamp: Date.now()
+          }));
+        }
+        
+      } else if (data.type === 'file_download') {
+        // Handle file download request
+        const filename = data.data;
+        const filepath = path.join(filesDir, filename);
+        
+        try {
+          if (fs.existsSync(filepath)) {
+            const stats = fs.statSync(filepath);
+            let content;
+            let isBase64 = false;
+            
+            // Determine if file is binary
+            const ext = path.extname(filename).toLowerCase();
+            const textExtensions = ['.txt', '.md', '.json', '.js', '.ts', '.css', '.html', '.xml', '.csv'];
+            const isTextFile = textExtensions.includes(ext);
+            
+            if (isTextFile) {
+              content = fs.readFileSync(filepath, 'utf8');
+            } else {
+              // Binary file - encode as base64
+              content = fs.readFileSync(filepath).toString('base64');
+              isBase64 = true;
+            }
+            
+            ws.send(JSON.stringify({
+              type: 'file_data',
+              data: content,
+              filename: filename,
+              fileSize: stats.size,
+              isBase64: isBase64,
+              timestamp: Date.now()
+            }));
+            
+            console.log(\`File downloaded: \${filename}\`);
+            
+          } else {
+            ws.send(JSON.stringify({
+              type: 'error',
+              data: \`File not found: \${filename}\`,
+              timestamp: Date.now()
+            }));
+          }
+        } catch (error) {
+          ws.send(JSON.stringify({
+            type: 'error',
+            data: \`Download failed: \${error.message}\`,
+            timestamp: Date.now()
+          }));
+        }
       }
       
     } catch (error) {

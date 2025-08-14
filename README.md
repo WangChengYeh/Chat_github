@@ -33,8 +33,11 @@ A minimal, phone-friendly React PWA for editing GitHub repository files using AI
 ### 🔧 **Technical Features**
 - **Syntax Highlighting**: JavaScript, TypeScript, Markdown, JSON
 - **File Management**: Create, browse, and preview files with `/new`, `/ls`, `/cat`
+- **WebSocket File Transfer**: Real-time file exchange between devices via WebSocket
 - **Smart Templates**: Auto-generated boilerplate for common file types
+- **Binary File Support**: Automatic base64 encoding for images and documents
 - **WebSocket Console**: Real-time command execution via WebSocket servers
+- **Cross-Device Sync**: Share files between phone, tablet, and desktop via WebSocket
 - **Diff Viewer**: Visual comparison with Original → Modified → Diff modes
 - **Live Preview**: Real-time file editing with CodeMirror
 - **Smart Commits**: Automated git operations with proper SHA handling
@@ -78,6 +81,8 @@ A minimal, phone-friendly React PWA for editing GitHub repository files using AI
 | `/new <path>` | Create new file with template | `/new src/NewComponent.tsx` |
 | `/ls [path]` | List files in directory | `/ls src/` |
 | `/cat <path>` | Show file contents | `/cat package.json` |
+| `/upload <filename>` | Upload file via WebSocket | `/upload logo.png` |
+| `/download <filename>` | Download file via WebSocket | `/download data.json` |
 | `/socket <cmd>` | WebSocket console operations | `/socket connect ws://localhost:8080` |
 | `/save` | Save draft to localStorage | `/save` |
 | `/revert` | Restore to original content | `/revert` |
@@ -213,10 +218,10 @@ src/
 └── App.css              # Responsive styling
 ```
 
-### **WebSocket Console Setup**
+### **WebSocket Console & File Transfer Setup**
 ```bash
-# 1. Create WebSocket server
-/socket server 8080              # Show server template code
+# 1. Create WebSocket server with file transfer support
+/socket server 8080              # Show enhanced server template code
 
 # 2. Save template as websocket-server.js and run:
 # node websocket-server.js
@@ -229,8 +234,12 @@ src/
 /socket exec ls -la              # List files
 /socket send hello               # Send to stdin
 
-# 5. View real-time output in CLI
-# STDOUT/STDERR streams appear automatically
+# 5. Transfer files between devices
+/upload myfile.pdf               # Send file to server
+/download shared.json            # Get file from server
+
+# 6. View real-time output in CLI
+# STDOUT/STDERR streams and file transfer status appear automatically
 ```
 
 ---
@@ -262,6 +271,20 @@ Add installation instructions        # AI instruction
 /ls src/                            # List src folder
 /cat package.json                   # View file contents
 /open src/App.tsx                   # Load for editing
+```
+
+### **File Upload & Download via WebSocket**
+```bash
+# First connect to a WebSocket server
+/socket connect ws://localhost:8080
+
+# Upload files from device to server
+/upload image.png                   # Opens file picker, sends via WebSocket
+/upload document.pdf                # Upload any file type (text/binary)
+
+# Download files from server to device
+/download data.json                 # Request file from server
+/download report.xlsx               # Download and save locally
 ```
 
 ### **Code Refactoring**
