@@ -38,10 +38,12 @@ npm install
 echo -e "${BLUE}🔧 Building web assets...${NC}"
 npm run build
 
-# Check if Capacitor is installed
-if ! command -v npx cap &> /dev/null; then
+# Install Capacitor if not already present
+if ! npx cap --version &> /dev/null 2>&1; then
     echo -e "${YELLOW}📲 Installing Capacitor...${NC}"
     npm install @capacitor/core @capacitor/cli @capacitor/ios
+else
+    echo -e "${GREEN}✅ Capacitor already installed${NC}"
 fi
 
 # Initialize Capacitor if not already done
@@ -54,13 +56,27 @@ fi
 if [ ! -d "ios" ]; then
     echo -e "${BLUE}📱 Adding iOS platform...${NC}"
     npx cap add ios
+    if [ $? -ne 0 ]; then
+        echo -e "${RED}❌ Failed to add iOS platform${NC}"
+        exit 1
+    fi
+else
+    echo -e "${GREEN}✅ iOS platform already exists${NC}"
 fi
 
 echo -e "${BLUE}📋 Copying web assets...${NC}"
 npx cap copy ios
+if [ $? -ne 0 ]; then
+    echo -e "${RED}❌ Failed to copy web assets${NC}"
+    exit 1
+fi
 
 echo -e "${BLUE}🔄 Syncing Capacitor...${NC}"
 npx cap sync ios
+if [ $? -ne 0 ]; then
+    echo -e "${RED}❌ Failed to sync iOS project${NC}"
+    exit 1
+fi
 
 echo -e "${GREEN}✅ iOS project is ready!${NC}"
 echo -e "${YELLOW}Next steps:${NC}"
