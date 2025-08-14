@@ -323,6 +323,277 @@ Convert to TypeScript with types    # AI instruction
 
 ---
 
+## 🧪 **Testing & Validation**
+
+### **Test Prerequisites**
+Before running tests, ensure you have a `.config` file in the project root:
+
+```javascript
+// .config
+{
+  "githubToken": "ghp_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+  "openaiKey": "sk-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+  "owner": "your-username",
+  "repo": "test-repository",
+  "branch": "main",
+  "model": "gpt-4o-mini",
+  "temperature": 0.3
+}
+```
+
+### **Automated Test Suite**
+```bash
+npm test                # Run comprehensive test suite
+npm run server          # Start WebSocket server for testing
+npm run typecheck       # Verify TypeScript compilation
+npm run build           # Test production build
+```
+
+### **Manual Test Flows**
+
+#### **🧪 Test Case 1: Basic File Editing Workflow**
+**Purpose**: Verify core file editing functionality with AI assistance
+
+```bash
+# Setup Phase
+/config                              # Load .config automatically
+/clear                              # Clear CLI history
+
+# Test Execution
+/open README.md                      # Expected: File loaded, shows content
+/editor                             # Expected: Switch to editor mode
+# Manual: Add text "Test modification"
+/cli                                # Expected: Return to CLI mode
+Add installation instructions        # Expected: AI processing starts
+/apply                              # Expected: Changes applied to editor
+/diff                               # Expected: Shows differences
+/commit "test: add installation"    # Expected: Successful commit with new SHA
+
+# Validation
+/cat README.md                      # Expected: Shows updated content with AI changes
+# Status: ✅ PASS / ❌ FAIL
+```
+
+#### **🧪 Test Case 2: New File Creation Workflow**
+**Purpose**: Test file creation with smart templates
+
+```bash
+# Setup Phase
+/clear
+
+# Test Execution
+/ls                                  # Expected: Shows repository structure
+/ls src/                            # Expected: Shows src directory contents
+/new src/components/TestHeader.tsx   # Expected: Creates file with React template
+/editor                             # Expected: Shows template content
+# Manual: Verify TypeScript template is loaded
+/cli
+/commit "feat: add test header component" # Expected: New file committed
+
+# Validation
+/cat src/components/TestHeader.tsx   # Expected: Shows committed file content
+/ls src/components/                  # Expected: TestHeader.tsx appears in listing
+# Status: ✅ PASS / ❌ FAIL
+```
+
+#### **🧪 Test Case 3: File Exploration Workflow**
+**Purpose**: Validate directory browsing and file preview
+
+```bash
+# Setup Phase
+/clear
+
+# Test Execution
+/ls                                  # Expected: Root directory listing with icons
+/ls src/                            # Expected: Source directory contents
+/ls nonexistent/                    # Expected: Error message
+/cat package.json                   # Expected: Shows package.json content (truncated if >50 lines)
+/cat src/App.tsx                    # Expected: Shows App.tsx content
+/cat missing-file.txt               # Expected: File not found error
+
+# Validation
+# Verify all listings show correct file types (📁 for dirs, 📄 for files)
+# Verify file sizes are displayed in human-readable format
+# Verify error handling for non-existent paths
+# Status: ✅ PASS / ❌ FAIL
+```
+
+#### **🧪 Test Case 4: Tool Mode UI Workflow**
+**Purpose**: Test visual file transfer interface
+
+```bash
+# Setup Phase
+/clear
+
+# Test Execution
+/tool                               # Expected: Opens Tool mode UI
+# Manual Steps in Tool Mode:
+# 1. Verify GitHub/WebSocket mode toggle works
+# 2. Select a small test file (< 1MB)
+# 3. Enter path: "test-uploads/sample.txt"
+# 4. Click Upload button
+# 5. Verify activity log shows progress
+# 6. Switch to download section
+# 7. Enter path: "test-uploads/sample.txt" 
+# 8. Click Download button
+# 9. Verify file downloads to local device
+
+/cli                                # Expected: Return to CLI mode
+
+# Validation
+/cat test-uploads/sample.txt        # Expected: Shows uploaded file content
+# Check Downloads folder for downloaded file
+# Verify activity log shows timestamps and status
+# Status: ✅ PASS / ❌ FAIL
+```
+
+#### **🧪 Test Case 5: WebSocket File Transfer Workflow**
+**Purpose**: Test WebSocket server integration and file transfer
+
+```bash
+# Prerequisites: WebSocket server running (npm run server)
+
+# Setup Phase
+/clear
+/socket status                      # Expected: Shows disconnected status
+
+# Test Execution  
+/socket connect ws://localhost:8080  # Expected: Connection established
+/socket status                      # Expected: Shows connected status
+/upload test-document.pdf           # Expected: File picker opens
+# Manual: Select a PDF file
+# Expected: Upload progress, server confirmation
+/download test-document.pdf         # Expected: File downloaded to device
+/socket exec ls websocket_files     # Expected: Shows uploaded files
+/socket exec echo "Hello Server"    # Expected: Server executes and returns output
+/socket disconnect                  # Expected: Clean disconnection
+
+# Validation
+# Verify server console shows client connection/disconnection
+# Verify websocket_files directory contains uploaded file
+# Verify local Downloads folder contains downloaded file
+# Status: ✅ PASS / ❌ FAIL
+```
+
+#### **🧪 Test Case 6: Code Refactoring Workflow**
+**Purpose**: Test AI-powered code transformation
+
+```bash
+# Setup Phase  
+/clear
+
+# Test Execution
+/new src/test-utils.js              # Expected: Creates JS file with template
+/editor                             # Expected: Shows JavaScript template
+# Manual: Replace template with simple JS function
+/cli
+Convert to TypeScript with types    # Expected: AI processes JavaScript → TypeScript
+/apply                              # Expected: Code transformed to TypeScript
+/diff                               # Expected: Shows JS → TS conversion
+/save                               # Expected: Downloads transformed file locally
+/commit "refactor: convert to TS"   # Expected: Commits TypeScript version
+
+# Validation
+/cat src/test-utils.js              # Expected: Shows TypeScript code with proper types
+# Verify Downloads folder contains local copy
+# Status: ✅ PASS / ❌ FAIL
+```
+
+#### **🧪 Test Case 7: Chinese Language Support**
+**Purpose**: Validate CJK text handling and Chinese AI instructions
+
+```bash
+# Setup Phase
+/clear
+
+# Test Execution
+/new 中文测试.md                     # Expected: Creates file with Chinese filename
+/editor                             # Expected: Opens editor, shows Chinese filename
+# Manual: Enter mixed Chinese/English content
+# "这是一个测试文件 This is a test file 中英文混合"
+/cli
+为这个文件添加更多中文内容              # Expected: AI responds to Chinese instruction
+/apply                              # Expected: Chinese content added
+/commit "docs: 添加中文测试文件"       # Expected: Commits with Chinese message
+
+# Validation  
+/cat 中文测试.md                     # Expected: Shows mixed Chinese/English content
+# Verify Chinese characters render correctly
+# Verify editor handles Chinese input properly
+# Status: ✅ PASS / ❌ FAIL
+```
+
+#### **🧪 Test Case 8: Error Handling & Recovery**
+**Purpose**: Test application resilience and error recovery
+
+```bash
+# Setup Phase
+/clear
+
+# Test Execution
+/open nonexistent-file.txt          # Expected: 404 error, graceful handling
+/commit "test"                      # Expected: Error - no file loaded
+/apply                              # Expected: Error - no AI changes pending
+/socket connect ws://invalid:9999    # Expected: Connection failed error
+/upload invalid-file                # Expected: Error - not connected
+/branch invalid-branch-name         # Expected: Branch switch (simulated)
+/diff                               # Expected: No changes to show
+Invalid command syntax              # Expected: Unknown command error
+
+# Validation
+# Verify all errors show helpful messages
+# Verify app remains functional after errors
+# Verify no crashes or broken states
+# Status: ✅ PASS / ❌ FAIL
+```
+
+### **Performance Test Cases**
+
+#### **🧪 Test Case 9: Large File Handling**
+```bash
+# Test with files > 100KB
+/cat large-file.json                # Expected: Content truncated with warning
+/open large-file.json               # Expected: Loads but may warn about size
+# Manual: Test editor performance with large file
+```
+
+#### **🧪 Test Case 10: Mobile Responsiveness**
+```bash  
+# Manual test on mobile device (or DevTools mobile view)
+# 1. Test touch interactions in all three modes
+# 2. Verify command input works with on-screen keyboard
+# 3. Test file picker on mobile
+# 4. Verify Tool mode UI scales properly
+# Status: ✅ PASS / ❌ FAIL
+```
+
+### **Test Results Template**
+
+```markdown
+## Test Execution Report
+
+**Date**: ________________
+**Tester**: ________________
+**Environment**: ________________
+
+| Test Case | Status | Notes |
+|-----------|--------|-------|
+| Basic File Editing | ✅ PASS / ❌ FAIL | |
+| New File Creation | ✅ PASS / ❌ FAIL | |
+| File Exploration | ✅ PASS / ❌ FAIL | |
+| Tool Mode UI | ✅ PASS / ❌ FAIL | |
+| WebSocket Transfer | ✅ PASS / ❌ FAIL | |
+| Code Refactoring | ✅ PASS / ❌ FAIL | |
+| Chinese Language | ✅ PASS / ❌ FAIL | |
+| Error Handling | ✅ PASS / ❌ FAIL | |
+| Large Files | ✅ PASS / ❌ FAIL | |
+| Mobile UI | ✅ PASS / ❌ FAIL | |
+
+**Overall Status**: ✅ ALL PASS / ❌ ISSUES FOUND
+```
+
+---
+
 ## 🐛 **Troubleshooting**
 
 ### **Common Issues**
