@@ -1,0 +1,168 @@
+import { test, expect } from '@playwright/test';
+import { PWATestHelpers } from './helpers.js';
+
+test.describe('File Operations', () => {
+  let helpers;
+
+  test.beforeEach(async ({ page }) => {
+    helpers = new PWATestHelpers(page);
+    await page.goto('/');
+    await helpers.waitForCLI();
+    
+    // Setup configuration for file operations
+    await helpers.setupConfig();
+  });
+
+  test('should handle file listing commands', async ({ page }) => {
+    // Mock successful API response
+    await page.route('**/repos/*/contents**', route => {
+      route.fulfill({
+        status: 200,
+        body: JSON.stringify([
+          { name: 'README.md', type: 'file', size: 1024 },
+          { name: 'src', type: 'dir', size: 0 },
+          { name: 'package.json', type: 'file', size: 2048 }
+        ])
+      });
+    });
+
+    await helpers.executeCommand('/ls');
+    
+    await expect(page.locator('.cli-history')).toContainText('Contents of root:');
+    await expect(page.locator('.cli-history')).toContainText('📁 src');
+    await expect(page.locator('.cli-history')).toContainText('📄 README.md');
+    await expect(page.locator('.cli-history')).toContainText('📄 package.json');
+  });
+
+  test('should handle file preview with cat command', async ({ page }) => {
+    const mockContent = helpers.createTestFileContent('text');
+    
+    await page.route('**/repos/*/contents/test.txt**', route => {
+      route.fulfill({
+        status: 200,
+        body: JSON.stringify({
+          content: btoa(mockContent),
+          sha: 'mock-sha-123'
+        })
+      });
+    });
+
+    await helpers.executeCommand('/cat test.txt');
+    
+    await expect(page.locator('.cli-history')).toContainText('Content of test.txt:');
+    await expect(page.locator('.cli-history')).toContainText('This is a test file');
+  });
+
+  test('should create new file with template', async ({ page }) => {
+    // Mock file doesn't exist (404) then successful creation
+    await page.route('**/repos/*/contents/src/NewComponent.tsx**', route => {
+      if (route.request().method() === 'GET') {
+        route.fulfill({ status: 404 });
+      } else {
+        route.fulfill({
+          status: 201,
+          body: JSON.stringify({
+            content: { sha: 'new-file-sha' }
+          })
+        });
+      }
+    });
+
+    await helpers.executeCommand('/new src/NewComponent.tsx');
+    
+    await expect(page.locator('.cli-history')).toContainText('Created new file: src/NewComponent.tsx');
+    
+    // Switch to editor to verify template
+    await helpers.switchToEditor();
+    await expect(page.locator('.cm-editor')).toContainText('React');
+    await expect(page.locator('.cm-editor')).toContainText('Component');
+  });
+
+  test('should handle file open and editing workflow', async ({ page }) => {
+    const mockContent = helpers.createTestFileContent('javascript');
+    
+    await page.route('**/repos/*/contents/test.js**', route => {
+      route.fulfill({
+        status: 200,
+        body: JSON.stringify({
+          content: btoa(mockContent),
+          sha: 'existing-sha-456'
+        })
+      });
+    });
+
+    // Open file
+    await helpers.executeCommand('/open test.js');
+    await expect(page.locator('.cli-history')).toContainText('Opened test.js');
+    
+    // Switch to editor
+    await helpers.switchToEditor();
+    
+    // Verify content is loaded
+    await expect(page.locator('.cm-editor')).toContainText('function testFunction');
+    
+    // Verify status bar shows file info
+    await expect(page.locator('.status-left')).toContainText('test.js');
+  });
+
+  test('should handle file save to local downloads', async ({ page }) => {
+    const mockContent = helpers.createTestFileContent('text');
+    
+    await page.route('**/repos/*/contents/test.txt**', route => {
+      route.fulfill({
+        status: 200,
+        body: JSON.stringify({
+          content: btoa(mockContent),
+          sha: 'test-sha'
+        })
+      });
+    });
+
+    // Open file first
+    await helpers.executeCommand('/open test.txt');
+    
+    // Test save command
+    const downloadPromise = page.waitForEvent('download');
+    await helpers.executeCommand('/save');
+    
+    const download = await downloadPromise;
+    expect(download.suggestedFilename()).toBe('test.txt');
+    
+    await expect(page.locator('.cli-history')).toContainText('File saved locally');
+    await expect(page.locator('.cli-history')).toContainText('Check your Downloads folder');
+  });
+
+  test('should handle error scenarios gracefully', async ({ page }) => {
+    // Test 404 file not found
+    await page.route('**/repos/*/contents/nonexistent.txt**', route => {
+      route.fulfill({ status: 404 });
+    });
+
+    await helpers.executeCommand('/open nonexistent.txt');
+    await expect(page.locator('.cli-history')).toContainText('Failed to open file');
+    
+    // Test invalid command usage
+    await helpers.executeCommand('/open');
+    await expect(page.locator('.cli-history')).toContainText('Usage: /open <path>');
+  });
+
+  test('should handle large file truncation in cat command', async ({ page }) => {
+    // Create large content (> 50 lines)
+    const largeContent = Array(60).fill('Line content here').join('\n');
+    
+    await page.route('**/repos/*/contents/large.txt**', route => {
+      route.fulfill({
+        status: 200,
+        body: JSON.stringify({
+          content: btoa(largeContent),
+          sha: 'large-file-sha'
+        })
+      });
+    });
+
+    await helpers.executeCommand('/cat large.txt');
+    
+    await expect(page.locator('.cli-history')).toContainText('showing first 50 lines');
+    await expect(page.locator('.cli-history')).toContainText('Use /open to load the full file');
+  });
+});

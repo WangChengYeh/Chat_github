@@ -1,0 +1,21 @@
+{
+  "name": "Chat GitHub - 手機端 AI 程式編輯器",
+  "short_name": "Chat GitHub",
+  "description": "Mobile-First AI CLI & Text Editor for GitHub with Chinese support",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#000000",
+  "theme_color": "#000000",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "/vite.svg",
+      "sizes": "any",
+      "type": "image/svg+xml"
+    }
+  ],
+  "categories": ["developer", "productivity", "utilities"],
+  "lang": "zh-TW",
+  "scope": "/",
+  "prefer_related_applications": false
+}
