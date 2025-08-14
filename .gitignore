@@ -49,3 +49,6 @@ coverage/
 # Cache
 .cache/
 .parcel-cache/
+
+# Config
+.config
