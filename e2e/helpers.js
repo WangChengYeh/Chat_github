@@ -227,20 +227,58 @@ export class PWATestHelpers {
     await this.page.addInitScript(() => {
       // Mock WebSocket for testing
       window.originalWebSocket = window.WebSocket;
+      
+      // Add WebSocket constants
+      if (typeof window.WebSocket !== 'undefined') {
+        window.WebSocket.CONNECTING = 0;
+        window.WebSocket.OPEN = 1;
+        window.WebSocket.CLOSING = 2;
+        window.WebSocket.CLOSED = 3;
+      }
+      
       window.WebSocket = class MockWebSocket {
         constructor(url) {
           this.url = url;
           this.readyState = 0; // CONNECTING
-          setTimeout(() => {
+          this._onopen = null;
+          this._onmessage = null;
+          this._onclose = null;
+          this._onerror = null;
+          
+          // Schedule successful connection
+          this._connectionTimer = setTimeout(() => {
             this.readyState = 1; // OPEN
-            if (this.onopen) this.onopen();
-          }, 100);
+            if (this._onopen) {
+              this._onopen(new Event('open'));
+            }
+          }, 150);
+        }
+        
+        get onopen() { return this._onopen; }
+        set onopen(handler) {
+          this._onopen = handler;
+        }
+        
+        get onmessage() { return this._onmessage; }
+        set onmessage(handler) {
+          this._onmessage = handler;
+        }
+        
+        get onclose() { return this._onclose; }
+        set onclose(handler) {
+          this._onclose = handler;
+        }
+        
+        get onerror() { return this._onerror; }
+        set onerror(handler) {
+          this._onerror = handler;
+          // Don't trigger error events in successful mock
         }
         
         send(data) {
           // Mock successful send
           setTimeout(() => {
-            if (this.onmessage) {
+            if (this._onmessage) {
               const mockResponse = {
                 data: JSON.stringify({
                   type: 'status',
@@ -248,16 +286,33 @@ export class PWATestHelpers {
                   timestamp: Date.now()
                 })
               };
-              this.onmessage(mockResponse);
+              this._onmessage(mockResponse);
             }
           }, 50);
         }
         
         close() {
+          if (this._connectionTimer) {
+            clearTimeout(this._connectionTimer);
+          }
           this.readyState = 3; // CLOSED
-          if (this.onclose) this.onclose();
+          if (this._onclose) {
+            this._onclose(new CloseEvent('close', { wasClean: true, code: 1000, reason: 'Normal closure' }));
+          }
         }
+        
+        // Static constants
+        static get CONNECTING() { return 0; }
+        static get OPEN() { return 1; }
+        static get CLOSING() { return 2; }
+        static get CLOSED() { return 3; }
       };
+      
+      // Add constants to the constructor function
+      window.WebSocket.CONNECTING = 0;
+      window.WebSocket.OPEN = 1;
+      window.WebSocket.CLOSING = 2;
+      window.WebSocket.CLOSED = 3;
     });
   }
 

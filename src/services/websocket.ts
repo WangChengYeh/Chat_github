@@ -59,6 +59,7 @@ export class WebSocketService {
 
         this.ws.onerror = (error) => {
           this.onStatusChange('error')
+          console.error('WebSocket error:', error)
           reject(new Error(`WebSocket connection failed: ${error}`))
         }
 

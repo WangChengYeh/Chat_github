@@ -434,7 +434,15 @@ export const CLI: React.FC = () => {
         },
         (status) => {
           setWebSocket({ status, connected: status === 'connected' })
-          addHistory(`WebSocket ${status}: ${url}`)
+          if (status === 'connected') {
+            addHistory(`WebSocket connected: ${url}`)
+          } else if (status === 'connecting') {
+            addHistory(`WebSocket connecting: ${url}`)
+          } else if (status === 'error') {
+            addHistory(`WebSocket error: ${url}`)
+          } else if (status === 'disconnected') {
+            addHistory(`WebSocket disconnected: ${url}`)
+          }
         }
       )
 
@@ -553,7 +561,7 @@ export const CLI: React.FC = () => {
       })
       
       // Trigger file picker
-      addHistory(`Opening file picker for upload...`)
+      addHistory('Opening file picker for upload')
       fileInput.click()
       
       // Wait for file selection
@@ -618,8 +626,8 @@ export const CLI: React.FC = () => {
 
     try {
       wsService.requestFileDownload(filename)
-      addHistory(`📥 Requesting download: ${filename}`)
-      addHistory('Waiting for server response...')
+      addHistory(`Requesting download: ${filename}`)
+      addHistory('Waiting for server response')
       
     } catch (error) {
       addHistory(`Download failed: ${error instanceof Error ? error.message : error}`)

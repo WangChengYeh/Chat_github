@@ -257,12 +257,14 @@ export const Tool: React.FC = () => {
           <button 
             className={toolMode === 'github' ? 'active' : ''}
             onClick={() => setToolMode('github')}
+            data-testid="tool-github-btn"
           >
             GitHub
           </button>
           <button 
             className={toolMode === 'websocket' ? 'active' : ''}
             onClick={() => setToolMode('websocket')}
+            data-testid="tool-websocket-btn"
           >
             WebSocket
           </button>
