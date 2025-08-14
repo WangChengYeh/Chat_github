@@ -125,12 +125,17 @@ test.describe('File Operations', () => {
 
   test('should handle error scenarios gracefully', async ({ page }) => {
     // Test 404 file not found
-    await page.route('**/repos/*/contents/nonexistent.txt**', route => {
-      route.fulfill({ status: 404 });
+    // Override global route with more specific route
+    await page.unroute('**/repos/**');
+    await page.route('**/repos/test-owner/test-repo/contents/nonexistent.txt**', route => {
+      route.fulfill({ 
+        status: 404, 
+        body: JSON.stringify({ message: "Not Found" })
+      });
     });
 
     await helpers.executeCommand('/open nonexistent.txt');
-    await expect(page.locator('.cli-history')).toContainText('Failed to open file');
+    await expect(page.locator('.cli-history')).toContainText('Error: Failed to open file');
     
     // Test invalid command usage
     await helpers.executeCommand('/open');
@@ -139,21 +144,24 @@ test.describe('File Operations', () => {
 
   test('should handle large file truncation in cat command', async ({ page }) => {
     // Create large content (> 50 lines)
-    const largeContent = Array(60).fill('Line content here').join('\n');
+    const largeContent = Array.from({ length: 60 }, (_, i) => `Line ${i + 1} content here`).join('\n');
     
-    await page.route('**/repos/*/contents/large.txt**', route => {
+    // Override global route for this specific large file test
+    await page.unroute('**/repos/**');
+    await page.route('**/repos/test-owner/test-repo/contents/large.txt**', route => {
       route.fulfill({
         status: 200,
         body: JSON.stringify({
-          content: btoa(largeContent),
-          sha: 'large-file-sha'
+          content: btoa(unescape(encodeURIComponent(largeContent))), // Proper UTF-8 encoding
+          sha: 'large-file-sha-' + Math.random().toString(36).substr(2, 9),
+          name: 'large.txt'
         })
       });
     });
 
     await helpers.executeCommand('/cat large.txt');
     
-    await expect(page.locator('.cli-history')).toContainText('showing first 50 lines');
-    await expect(page.locator('.cli-history')).toContainText('Use /open to load the full file');
+    await expect(page.locator('.cli-history')).toContainText('... (showing first 50 lines of');
+    await expect(page.locator('.cli-history')).toContainText('Use /open to load the full file for editing');
   });
 });
