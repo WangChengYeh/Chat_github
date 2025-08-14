@@ -55,14 +55,44 @@ export class PWATestHelpers {
       
       if (url.includes('/contents/')) {
         if (method === 'GET') {
+          // Parse URL to get filename and check for directory listing
+          const urlParts = url.split('/contents/')[1];
+          const filename = urlParts ? urlParts.split('?')[0] : '';
+          
+          // If empty path or just query params, it's a directory listing
+          if (!filename || filename === '') {
+            // Mock directory listing
+            route.fulfill({
+              status: 200,
+              contentType: 'application/json',
+              body: JSON.stringify([
+                { name: 'README.md', type: 'file', size: 1024, path: 'README.md' },
+                { name: 'src', type: 'dir', size: 0, path: 'src' },
+                { name: 'package.json', type: 'file', size: 2048, path: 'package.json' }
+              ])
+            });
+            return;
+          }
+          
           // Mock file content response
-          const filename = url.split('/').pop();
+          
+          // Handle special cases for file creation tests
+          if (filename === 'src/NewComponent.tsx' || url.includes('NewComponent.tsx')) {
+            // Return 404 for new file creation tests
+            route.fulfill({ status: 404, body: JSON.stringify({message: "Not Found"}) });
+            return;
+          }
+          
           let content;
           
           if (filename.includes('chinese') || filename.includes('中文')) {
             content = '这是一个中文测试文件\n中英文混合内容\nMixed Chinese and English content';
+          } else if (filename === 'syntax.js') {
+            content = 'function testFunction() {\n  console.log("Hello World");\n  return true;\n}\n\ntestFunction();';
           } else if (filename.endsWith('.js')) {
             content = 'function testFunction() {\n  console.log("Hello World");\n}\n\ntestFunction();';
+          } else if (filename === 'empty.txt') {
+            content = ''; // Actually empty for empty file test
           } else {
             content = 'This is a test file\nwith multiple lines\nfor testing purposes';
           }
@@ -86,17 +116,6 @@ export class PWATestHelpers {
             })
           });
         }
-      } else {
-        // Mock directory listing
-        route.fulfill({
-          status: 200,
-          contentType: 'application/json',
-          body: JSON.stringify([
-            { name: 'README.md', type: 'file', size: 1024 },
-            { name: 'src', type: 'dir', size: 0 },
-            { name: 'package.json', type: 'file', size: 2048 }
-          ])
-        });
       }
     });
 
