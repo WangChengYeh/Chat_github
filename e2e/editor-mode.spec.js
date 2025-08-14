@@ -150,12 +150,14 @@ test.describe('Editor Mode', () => {
   test('should handle syntax highlighting for different file types', async ({ page }) => {
     const jsContent = helpers.createTestFileContent('javascript');
     
-    await page.route('**/repos/*/contents/syntax.js**', route => {
+    // Override global route with specific file route
+    await page.route('**/repos/test-owner/test-repo/contents/syntax.js**', route => {
       route.fulfill({
         status: 200,
         body: JSON.stringify({
-          content: btoa(jsContent),
-          sha: 'syntax-sha'
+          content: btoa(unescape(encodeURIComponent(jsContent))), // Proper UTF-8 encoding
+          sha: 'syntax-sha-456',
+          name: 'syntax.js'
         })
       });
     });
@@ -163,8 +165,9 @@ test.describe('Editor Mode', () => {
     await helpers.executeCommand('/open syntax.js');
     await helpers.switchToEditor();
     
-    // Verify syntax highlighting elements exist
-    await expect(page.locator('.cm-editor .ͼ1')).toBeVisible(); // CodeMirror syntax classes
+    // Verify syntax highlighting exists by checking for syntax classes
+    const syntaxElements = page.locator('.cm-editor [class*="ͼ"]');
+    await expect(syntaxElements.first()).toBeVisible(); // CodeMirror syntax classes
     await expect(page.locator('.cm-content')).toContainText('function');
     await expect(page.locator('.cm-content')).toContainText('console.log');
   });
@@ -197,6 +200,7 @@ test.describe('Editor Mode', () => {
     
     // Verify editor handles empty content
     await expect(page.locator('.cm-editor')).toBeVisible();
-    await expect(page.locator('.cm-editor .cm-line')).toBeVisible();
+    // Check that at least one line exists (empty files still have one line)
+    await expect(page.locator('.cm-editor .cm-line').first()).toBeVisible();
   });
 });

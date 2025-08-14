@@ -14,18 +14,6 @@ test.describe('File Operations', () => {
   });
 
   test('should handle file listing commands', async ({ page }) => {
-    // Set up more specific route for directory listing
-    await page.route('**/repos/test-owner/test-repo/contents?ref=main', route => {
-      route.fulfill({
-        status: 200,
-        body: JSON.stringify([
-          { name: 'README.md', type: 'file', size: 1024, path: 'README.md' },
-          { name: 'src', type: 'dir', size: 0, path: 'src' },  
-          { name: 'package.json', type: 'file', size: 2048, path: 'package.json' }
-        ])
-      });
-    });
-
     await helpers.executeCommand('/ls');
     
     await expect(page.locator('.cli-history')).toContainText('Contents of root:');
@@ -54,15 +42,18 @@ test.describe('File Operations', () => {
   });
 
   test('should create new file with template', async ({ page }) => {
-    // Mock file doesn't exist (404) then successful creation
-    await page.route('**/repos/*/contents/src/NewComponent.tsx**', route => {
-      if (route.request().method() === 'GET') {
-        route.fulfill({ status: 404 });
+    // Override the global route for this specific file
+    await page.route('**/repos/test-owner/test-repo/contents/src/NewComponent.tsx**', route => {
+      const method = route.request().method();
+      if (method === 'GET') {
+        // Return 404 to indicate file doesn't exist
+        route.fulfill({ status: 404, body: JSON.stringify({message: "Not Found"}) });
       } else {
+        // POST/PUT - successful creation
         route.fulfill({
           status: 201,
           body: JSON.stringify({
-            content: { sha: 'new-file-sha' }
+            content: { sha: 'new-file-sha-123' }
           })
         });
       }
