@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react'
+import { useEffect } from 'react'
 import { useStore } from './store'
 import { CLI } from './components/CLI'
 import { Editor } from './components/Editor'

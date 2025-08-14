@@ -52,7 +52,7 @@ A minimal, phone-friendly React PWA for editing GitHub repository files using AI
 |------|---------|----------|
 | **CLI Mode** | AI interaction & commands | Scrollable history, command parsing, AI responses |
 | **Editor Mode** | File editing & review | Syntax highlighting, diff view, status bar |
-| **Tool Mode** | File upload/download UI | Visual interface for GitHub and WebSocket file operations |
+| **Tool Mode** | File upload/download UI | Visual interface between user |
 
 ### **Core Principles**
 | Principle | Implementation |

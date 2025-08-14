@@ -93,7 +93,7 @@ const initialWebSocket: WebSocketState = {
   messages: []
 }
 
-export const useStore = create<AppStore>((set, get) => ({
+export const useStore = create<AppStore>((set) => ({
   mode: 'cli',
   file: initialFile,
   ai: initialAI,
