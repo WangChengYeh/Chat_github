@@ -24,6 +24,17 @@ export interface ConfigState {
   temperature: number
 }
 
+export interface WebSocketState {
+  connected: boolean
+  url: string
+  status: 'connecting' | 'connected' | 'disconnected' | 'error'
+  messages: Array<{
+    type: 'stdin' | 'stdout' | 'stderr' | 'command' | 'status' | 'error'
+    data: string
+    timestamp: number
+  }>
+}
+
 export interface AppState {
   mode: 'cli' | 'editor'
   file: FileState
@@ -31,6 +42,7 @@ export interface AppState {
   config: ConfigState
   history: string[]
   showConfig: boolean
+  websocket: WebSocketState
 }
 
 interface AppStore extends AppState {
@@ -42,6 +54,9 @@ interface AppStore extends AppState {
   clearHistory: () => void
   setShowConfig: (show: boolean) => void
   resetFile: () => void
+  setWebSocket: (ws: Partial<WebSocketState>) => void
+  addWebSocketMessage: (message: WebSocketState['messages'][0]) => void
+  clearWebSocketMessages: () => void
 }
 
 const initialFile: FileState = {
@@ -68,6 +83,13 @@ const initialConfig: ConfigState = {
   temperature: 0.3
 }
 
+const initialWebSocket: WebSocketState = {
+  connected: false,
+  url: '',
+  status: 'disconnected',
+  messages: []
+}
+
 export const useStore = create<AppStore>((set, get) => ({
   mode: 'cli',
   file: initialFile,
@@ -75,6 +97,7 @@ export const useStore = create<AppStore>((set, get) => ({
   config: initialConfig,
   history: [],
   showConfig: false,
+  websocket: initialWebSocket,
 
   setMode: (mode) => set({ mode }),
   
@@ -100,5 +123,20 @@ export const useStore = create<AppStore>((set, get) => ({
   
   resetFile: () => set({
     file: initialFile
-  })
+  }),
+
+  setWebSocket: (ws) => set((state) => ({
+    websocket: { ...state.websocket, ...ws }
+  })),
+
+  addWebSocketMessage: (message) => set((state) => ({
+    websocket: {
+      ...state.websocket,
+      messages: [...state.websocket.messages.slice(-99), message] // Keep last 100 messages
+    }
+  })),
+
+  clearWebSocketMessages: () => set((state) => ({
+    websocket: { ...state.websocket, messages: [] }
+  }))
 }))

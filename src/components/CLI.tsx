@@ -3,6 +3,7 @@ import { useStore } from '../store'
 import { GitHubService } from '../services/github'
 import { AIService } from '../services/ai'
 import { DiffService } from '../services/diff'
+import { WebSocketService, createWebSocketServer } from '../services/websocket'
 
 const getDefaultFileContent = (path: string): string => {
   const ext = path.split('.').pop()?.toLowerCase()
@@ -40,6 +41,7 @@ export const CLI: React.FC = () => {
   const [processing, setProcessing] = useState(false)
   const inputRef = useRef<HTMLInputElement>(null)
   const historyRef = useRef<HTMLDivElement>(null)
+  const [wsService, setWsService] = useState<WebSocketService | null>(null)
   
   const {
     history,
@@ -52,7 +54,11 @@ export const CLI: React.FC = () => {
     config,
     setConfig,
     setMode,
-    setShowConfig
+    setShowConfig,
+    websocket,
+    setWebSocket,
+    addWebSocketMessage,
+    clearWebSocketMessages
   } = useStore()
 
   useEffect(() => {
@@ -100,6 +106,9 @@ export const CLI: React.FC = () => {
         break
       case 'cat':
         await showFileContent(arg)
+        break
+      case 'socket':
+        await handleSocketCommand(arg)
         break
       case 'apply':
         applyAIChanges()
@@ -328,6 +337,163 @@ export const CLI: React.FC = () => {
     return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i]
   }
 
+  const handleSocketCommand = async (arg: string) => {
+    const [subCommand, ...params] = arg.split(' ')
+    
+    switch (subCommand) {
+      case 'connect':
+        await connectWebSocket(params.join(' '))
+        break
+      case 'disconnect':
+        disconnectWebSocket()
+        break
+      case 'status':
+        showWebSocketStatus()
+        break
+      case 'send':
+        sendWebSocketMessage(params.join(' '))
+        break
+      case 'exec':
+        executeRemoteCommand(params.join(' '))
+        break
+      case 'server':
+        showServerTemplate(params[0] ? parseInt(params[0]) : 8080)
+        break
+      case 'clear':
+        clearWebSocketMessages()
+        addHistory('WebSocket message history cleared')
+        break
+      default:
+        addHistory('Usage: /socket <command>')
+        addHistory('Commands:')
+        addHistory('  connect <url>     - Connect to WebSocket server')
+        addHistory('  disconnect        - Disconnect from server')
+        addHistory('  status           - Show connection status')
+        addHistory('  send <message>   - Send raw message')
+        addHistory('  exec <command>   - Execute command on remote server')
+        addHistory('  server [port]    - Show server template code')
+        addHistory('  clear           - Clear message history')
+    }
+  }
+
+  const connectWebSocket = async (url: string) => {
+    if (!url) {
+      addHistory('Usage: /socket connect <ws://localhost:8080>')
+      return
+    }
+
+    if (wsService) {
+      wsService.disconnect()
+    }
+
+    try {
+      const newWsService = new WebSocketService(
+        url,
+        (message) => {
+          addWebSocketMessage(message)
+          
+          // Display messages in CLI
+          const timestamp = new Date(message.timestamp).toLocaleTimeString()
+          switch (message.type) {
+            case 'stdout':
+              addHistory(`[${timestamp}] STDOUT: ${message.data.trim()}`)
+              break
+            case 'stderr':
+              addHistory(`[${timestamp}] STDERR: ${message.data.trim()}`)
+              break
+            case 'status':
+              addHistory(`[${timestamp}] STATUS: ${message.data}`)
+              break
+            case 'error':
+              addHistory(`[${timestamp}] ERROR: ${message.data}`)
+              break
+          }
+        },
+        (status) => {
+          setWebSocket({ status, connected: status === 'connected' })
+          addHistory(`WebSocket ${status}: ${url}`)
+        }
+      )
+
+      setWsService(newWsService)
+      setWebSocket({ url })
+      await newWsService.connect()
+      
+    } catch (error) {
+      addHistory(`Failed to connect: ${error instanceof Error ? error.message : error}`)
+    }
+  }
+
+  const disconnectWebSocket = () => {
+    if (wsService) {
+      wsService.disconnect()
+      setWsService(null)
+      setWebSocket({ connected: false, status: 'disconnected' })
+      addHistory('WebSocket disconnected')
+    } else {
+      addHistory('No active WebSocket connection')
+    }
+  }
+
+  const showWebSocketStatus = () => {
+    if (wsService) {
+      addHistory(`WebSocket Status: ${websocket.status.toUpperCase()}`)
+      addHistory(`URL: ${websocket.url}`)
+      addHistory(`Ready State: ${wsService.getReadyState()}`)
+      addHistory(`Messages: ${websocket.messages.length}`)
+    } else {
+      addHistory('No WebSocket connection')
+    }
+  }
+
+  const sendWebSocketMessage = (message: string) => {
+    if (!message) {
+      addHistory('Usage: /socket send <message>')
+      return
+    }
+
+    if (!wsService || !wsService.isConnected()) {
+      addHistory('Not connected to WebSocket server')
+      return
+    }
+
+    try {
+      wsService.sendStdin(message)
+      addHistory(`Sent: ${message}`)
+    } catch (error) {
+      addHistory(`Failed to send message: ${error instanceof Error ? error.message : error}`)
+    }
+  }
+
+  const executeRemoteCommand = (command: string) => {
+    if (!command) {
+      addHistory('Usage: /socket exec <command>')
+      return
+    }
+
+    if (!wsService || !wsService.isConnected()) {
+      addHistory('Not connected to WebSocket server')
+      return
+    }
+
+    try {
+      wsService.sendCommand(command)
+      addHistory(`Executing: ${command}`)
+    } catch (error) {
+      addHistory(`Failed to execute command: ${error instanceof Error ? error.message : error}`)
+    }
+  }
+
+  const showServerTemplate = (port: number) => {
+    addHistory('WebSocket Server Template:')
+    addHistory('─'.repeat(50))
+    const template = createWebSocketServer(port)
+    const lines = template.split('\n')
+    lines.forEach(line => addHistory(line))
+    addHistory('─'.repeat(50))
+    addHistory(`Save as websocket-server.js and run: node websocket-server.js`)
+  }
+
   const applyAIChanges = () => {
     if (!ai.lastAIContent) {
       addHistory('No AI changes to apply')
@@ -468,6 +634,7 @@ export const CLI: React.FC = () => {
       '/new <path> - Create new file with template',
       '/ls [path] - List files in directory',
       '/cat <path> - Show file contents',
+      '/socket <cmd> - WebSocket console operations',
       '/apply - Apply AI changes to editor',
       '/diff - Show differences',
       '/revert - Revert to original',
@@ -484,6 +651,12 @@ export const CLI: React.FC = () => {
     
     addHistory('Available commands:')
     commands.forEach(cmd => addHistory(cmd))
+    addHistory('')
+    addHistory('WebSocket commands: /socket <subcommand>')
+    addHistory('  connect <url> - Connect to WebSocket server')
+    addHistory('  exec <cmd>    - Execute remote command')
+    addHistory('  send <msg>    - Send message to stdin')
+    addHistory('  server        - Show server template')
   }
 
   const handleSubmit = (e: React.FormEvent) => {

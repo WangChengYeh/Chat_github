@@ -34,6 +34,7 @@ A minimal, phone-friendly React PWA for editing GitHub repository files using AI
 - **Syntax Highlighting**: JavaScript, TypeScript, Markdown, JSON
 - **File Management**: Create, browse, and preview files with `/new`, `/ls`, `/cat`
 - **Smart Templates**: Auto-generated boilerplate for common file types
+- **WebSocket Console**: Real-time command execution via WebSocket servers
 - **Diff Viewer**: Visual comparison with Original → Modified → Diff modes
 - **Live Preview**: Real-time file editing with CodeMirror
 - **Smart Commits**: Automated git operations with proper SHA handling
@@ -77,6 +78,7 @@ A minimal, phone-friendly React PWA for editing GitHub repository files using AI
 | `/new <path>` | Create new file with template | `/new src/NewComponent.tsx` |
 | `/ls [path]` | List files in directory | `/ls src/` |
 | `/cat <path>` | Show file contents | `/cat package.json` |
+| `/socket <cmd>` | WebSocket console operations | `/socket connect ws://localhost:8080` |
 | `/save` | Save draft to localStorage | `/save` |
 | `/revert` | Restore to original content | `/revert` |
 
@@ -103,6 +105,16 @@ A minimal, phone-friendly React PWA for editing GitHub repository files using AI
 | `/cli` | Switch to CLI mode | `/cli` |
 | `/clear` | Clear command history | `/clear` |
 | `/tokens` | Estimate token usage | `/tokens` |
+
+### **WebSocket Console**
+| Command | Description | Example |
+|---------|-------------|---------|
+| `/socket connect <url>` | Connect to WebSocket server | `/socket connect ws://localhost:8080` |
+| `/socket exec <cmd>` | Execute command on remote server | `/socket exec npm test` |
+| `/socket send <msg>` | Send message to stdin | `/socket send hello world` |
+| `/socket status` | Show connection status | `/socket status` |
+| `/socket server [port]` | Show server template code | `/socket server 3000` |
+| `/socket disconnect` | Disconnect from server | `/socket disconnect` |
 
 ---
 
@@ -199,6 +211,26 @@ src/
 ├── store.ts             # Zustand state management
 ├── App.tsx              # Main application
 └── App.css              # Responsive styling
+```
+
+### **WebSocket Console Setup**
+```bash
+# 1. Create WebSocket server
+/socket server 8080              # Show server template code
+
+# 2. Save template as websocket-server.js and run:
+# node websocket-server.js
+
+# 3. Connect from PWA
+/socket connect ws://localhost:8080
+
+# 4. Execute commands remotely
+/socket exec npm test            # Run tests
+/socket exec ls -la              # List files
+/socket send hello               # Send to stdin
+
+# 5. View real-time output in CLI
+# STDOUT/STDERR streams appear automatically
 ```
 
 ---
