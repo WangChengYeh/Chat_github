@@ -49,7 +49,7 @@ export class GitHubService {
   async getFile(path: string, branch: string = 'main'): Promise<{ content: string; sha: string }> {
     try {
       const data: GitHubFileResponse = await this.request(`contents/${path}?ref=${branch}`)
-      const content = atob(data.content.replace(/\s/g, ''))
+      const content = decodeURIComponent(escape(atob(data.content.replace(/\s/g, ''))))
       return { content, sha: data.sha }
     } catch (error) {
       throw new Error(`Failed to fetch file: ${error}`)

@@ -227,6 +227,10 @@ export const CLI: React.FC = () => {
         dirty: false
       })
       
+      setConfig({
+        path: path
+      })
+      
       addHistory(`Opened ${path} (sha: ${sha.substring(0, 7)})`)
     } catch (error) {
       throw new Error(`Failed to open file: ${error}`)
@@ -267,8 +271,9 @@ export const CLI: React.FC = () => {
         dirty: true
       })
       
-      // Update config path for this session
-      setConfig({ path })
+      setConfig({
+        path: path
+      })
       
       addHistory(`Created new file: ${path}`)
       addHistory('Content loaded in editor. Use /editor to view/edit, then /commit to save.')
