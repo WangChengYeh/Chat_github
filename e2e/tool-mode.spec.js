@@ -30,8 +30,8 @@ test.describe('Tool Mode', () => {
     await helpers.switchToTool();
     
     // Verify default GitHub mode
-    const githubBtn = page.locator('button:text("GitHub")');
-    const websocketBtn = page.locator('button:text("WebSocket")');
+    const githubBtn = page.locator('[data-testid="tool-github-btn"]');
+    const websocketBtn = page.locator('[data-testid="tool-websocket-btn"]');
     
     await expect(githubBtn).toHaveClass(/active/);
     

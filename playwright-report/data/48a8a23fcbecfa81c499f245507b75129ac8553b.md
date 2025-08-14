@@ -1,0 +1,6 @@
+# Page snapshot
+
+```yaml
+- text: "> /help Available commands: /open <path> - Load file from GitHub /new <path> - Create new file with template /ls [path] - List files in directory /cat <path> - Show file contents /upload <filename> - Upload file via WebSocket /download <filename> - Download file via WebSocket /socket <cmd> - WebSocket console operations /apply - Apply AI changes to editor /diff - Show differences /revert - Revert to original /commit \"msg\" - Commit changes /branch <name> - Switch branch /model <id> - Switch AI model /config - Open configuration /save - Save current file to local Downloads /tokens - Estimate token usage /editor - Switch to editor /tool [upload|download] - Switch to file transfer tools /clear - Clear history /help - Show this help WebSocket commands: /socket <subcommand> connect <url> - Connect to WebSocket server exec <cmd> - Execute remote command send <msg> - Send message to stdin server [port] - Show server template with file support File Transfer (requires WebSocket connection): /upload <filename> - Send file to server /download <filename> - Receive file from server"
+- textbox "輸入指令或AI指示... (以/開始指令) / Enter command (start with /) or AI instruction..."
+```
