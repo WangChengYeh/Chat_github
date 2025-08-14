@@ -47,11 +47,12 @@ A minimal, phone-friendly React PWA for editing GitHub repository files using AI
 
 ## 🏗️ **Architecture & Design**
 
-### **Two-Mode Interface**
+### **Three-Mode Interface**
 | Mode | Purpose | Features |
 |------|---------|----------|
 | **CLI Mode** | AI interaction & commands | Scrollable history, command parsing, AI responses |
 | **Editor Mode** | File editing & review | Syntax highlighting, diff view, status bar |
+| **Tool Mode** | File upload/download UI | Visual interface for GitHub and WebSocket file operations |
 
 ### **Core Principles**
 | Principle | Implementation |
@@ -84,7 +85,7 @@ A minimal, phone-friendly React PWA for editing GitHub repository files using AI
 | `/upload <filename>` | Upload file via WebSocket | `/upload logo.png` |
 | `/download <filename>` | Download file via WebSocket | `/download data.json` |
 | `/socket <cmd>` | WebSocket console operations | `/socket connect ws://localhost:8080` |
-| `/save` | Save draft to localStorage | `/save` |
+| `/save` | Save current file to local Downloads | `/save` |
 | `/revert` | Restore to original content | `/revert` |
 
 ### **AI Operations**
@@ -107,6 +108,7 @@ A minimal, phone-friendly React PWA for editing GitHub repository files using AI
 | `/config` | Open settings overlay | `/config` |
 | `/help` | Show all commands | `/help` |
 | `/editor` | Switch to editor mode | `/editor` |
+| `/tool [upload\|download]` | Switch to file transfer tools | `/tool upload` |
 | `/cli` | Switch to CLI mode | `/cli` |
 | `/clear` | Clear command history | `/clear` |
 | `/tokens` | Estimate token usage | `/tokens` |
@@ -273,7 +275,21 @@ Add installation instructions        # AI instruction
 /open src/App.tsx                   # Load for editing
 ```
 
-### **File Upload & Download via WebSocket**
+### **File Upload & Download (Visual Tool Mode)**
+```bash
+# Switch to visual file transfer interface
+/tool                               # Open file transfer tools
+/tool upload                        # Open tools focusing on upload
+/tool download                      # Open tools focusing on download
+
+# Use visual interface with forms and buttons to:
+# - Select files with file picker
+# - Enter GitHub paths or WebSocket filenames  
+# - Upload/download with real-time progress
+# - View activity log with timestamps
+```
+
+### **File Upload & Download via WebSocket CLI**
 ```bash
 # First connect to a WebSocket server
 /socket connect ws://localhost:8080

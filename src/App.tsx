@@ -2,6 +2,7 @@ import React, { useEffect } from 'react'
 import { useStore } from './store'
 import { CLI } from './components/CLI'
 import { Editor } from './components/Editor'
+import { Tool } from './components/Tool'
 import { ConfigOverlay } from './components/ConfigOverlay'
 import './App.css'
 
@@ -20,9 +21,22 @@ function App() {
     }
   }, [setConfig])
 
+  const renderCurrentMode = () => {
+    switch (mode) {
+      case 'cli':
+        return <CLI />
+      case 'editor':
+        return <Editor />
+      case 'tool':
+        return <Tool />
+      default:
+        return <CLI />
+    }
+  }
+
   return (
     <div className="app">
-      {mode === 'cli' ? <CLI /> : <Editor />}
+      {renderCurrentMode()}
       <ConfigOverlay />
     </div>
   )

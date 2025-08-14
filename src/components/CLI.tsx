@@ -154,6 +154,15 @@ export const CLI: React.FC = () => {
       case 'cli':
         addHistory('Already in CLI mode')
         break
+      case 'tool':
+        if (arg === 'upload' || arg === 'download') {
+          setMode('tool')
+          addHistory(`Switched to tool mode (${arg})`)
+        } else {
+          setMode('tool')
+          addHistory('Switched to tool mode')
+        }
+        break
       case 'clear':
         clearHistory()
         break
@@ -773,11 +782,51 @@ export const CLI: React.FC = () => {
   }
 
   const saveLocal = () => {
-    localStorage.setItem('chat-github-draft', JSON.stringify({
-      content: file.current,
-      timestamp: Date.now()
-    }))
-    addHistory('Content saved to local storage')
+    if (!file.current) {
+      addHistory('No file content to save')
+      return
+    }
+
+    if (!config.path) {
+      addHistory('No file path set. Use /open or /new first.')
+      return
+    }
+
+    try {
+      // Create blob with file content
+      const blob = new Blob([file.current], { type: 'text/plain;charset=utf-8' })
+      
+      // Create download link
+      const url = URL.createObjectURL(blob)
+      const downloadLink = document.createElement('a')
+      downloadLink.href = url
+      downloadLink.download = config.path.split('/').pop() || 'saved_file.txt'
+      downloadLink.style.display = 'none'
+      
+      // Add to DOM and trigger download
+      document.body.appendChild(downloadLink)
+      downloadLink.click()
+      
+      // Clean up
+      setTimeout(() => {
+        document.body.removeChild(downloadLink)
+        URL.revokeObjectURL(url)
+      }, 100)
+      
+      // Also save to localStorage as backup
+      localStorage.setItem('chat-github-draft', JSON.stringify({
+        content: file.current,
+        path: config.path,
+        timestamp: Date.now()
+      }))
+      
+      addHistory(`✅ File saved locally: ${downloadLink.download}`)
+      addHistory('📁 Check your Downloads folder')
+      addHistory('💾 Also backed up to localStorage')
+      
+    } catch (error) {
+      addHistory(`Save failed: ${error instanceof Error ? error.message : error}`)
+    }
   }
 
   const estimateTokens = async () => {
@@ -812,9 +861,10 @@ export const CLI: React.FC = () => {
       '/branch <name> - Switch branch',
       '/model <id> - Switch AI model',
       '/config - Open configuration',
-      '/save - Save draft locally',
+      '/save - Save current file to local Downloads',
       '/tokens - Estimate token usage',
       '/editor - Switch to editor',
+      '/tool [upload|download] - Switch to file transfer tools',
       '/clear - Clear history',
       '/help - Show this help'
     ]
