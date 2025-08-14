@@ -31,7 +31,10 @@
     "test": "node test.js",
     "test:playwright": "playwright test",
     "test:ui": "playwright test --ui",
-    "test:debug": "playwright test --debug"
+    "test:debug": "playwright test --debug",
+    "ios:build": "./scripts/build-ios.sh",
+    "ios:dev": "npm run build && npx cap copy ios && npx cap open ios",
+    "ios:sync": "npx cap sync ios"
   },
   "dependencies": {
     "@codemirror/lang-javascript": "^6.2.1",
