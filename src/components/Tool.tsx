@@ -1,7 +1,6 @@
 import React, { useState, useRef } from 'react'
 import { useStore } from '../store'
 import { GitHubService } from '../services/github'
-import { WebSocketService } from '../services/websocket'
 
 type ToolMode = 'github' | 'websocket'
 
@@ -19,8 +18,7 @@ export const Tool: React.FC = () => {
   const {
     setMode,
     config,
-    websocket,
-    addWebSocketMessage
+    websocket
   } = useStore()
 
   const addLog = (message: string) => {
