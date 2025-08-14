@@ -14,14 +14,14 @@ test.describe('File Operations', () => {
   });
 
   test('should handle file listing commands', async ({ page }) => {
-    // Mock successful API response
-    await page.route('**/repos/*/contents**', route => {
+    // Set up more specific route for directory listing
+    await page.route('**/repos/test-owner/test-repo/contents?ref=main', route => {
       route.fulfill({
         status: 200,
         body: JSON.stringify([
-          { name: 'README.md', type: 'file', size: 1024 },
-          { name: 'src', type: 'dir', size: 0 },
-          { name: 'package.json', type: 'file', size: 2048 }
+          { name: 'README.md', type: 'file', size: 1024, path: 'README.md' },
+          { name: 'src', type: 'dir', size: 0, path: 'src' },  
+          { name: 'package.json', type: 'file', size: 2048, path: 'package.json' }
         ])
       });
     });

@@ -1,7 +1,7 @@
 # Page snapshot
 
 ```yaml
-- text: main
+- text: main syntax.js
 - button "Modified"
 - button "☀️"
 - button "CLI"

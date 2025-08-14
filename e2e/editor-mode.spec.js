@@ -78,7 +78,8 @@ test.describe('Editor Mode', () => {
         status: 200,
         body: JSON.stringify({
           content: btoa(mockContent),
-          sha: 'js-file-sha'
+          sha: 'js-file-sha',
+          name: 'test.js'
         })
       });
     });
