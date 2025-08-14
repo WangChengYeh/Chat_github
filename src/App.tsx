@@ -4,6 +4,7 @@ import { CLI } from './components/CLI'
 import { Editor } from './components/Editor'
 import { Tool } from './components/Tool'
 import { ConfigOverlay } from './components/ConfigOverlay'
+import { InstallPrompt } from './components/InstallPrompt'
 import './App.css'
 
 function App() {
@@ -38,6 +39,7 @@ function App() {
     <div className="app">
       {renderCurrentMode()}
       <ConfigOverlay />
+      <InstallPrompt />
     </div>
   )
 }
