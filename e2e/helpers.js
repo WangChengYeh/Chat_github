@@ -225,94 +225,86 @@ export class PWATestHelpers {
    */
   async mockWebSocketServer() {
     await this.page.addInitScript(() => {
-      // Mock WebSocket for testing
-      window.originalWebSocket = window.WebSocket;
-      
-      // Add WebSocket constants
-      if (typeof window.WebSocket !== 'undefined') {
-        window.WebSocket.CONNECTING = 0;
-        window.WebSocket.OPEN = 1;
-        window.WebSocket.CLOSING = 2;
-        window.WebSocket.CLOSED = 3;
-      }
-      
-      window.WebSocket = class MockWebSocket {
-        constructor(url) {
-          this.url = url;
-          this.readyState = 0; // CONNECTING
-          this._onopen = null;
-          this._onmessage = null;
-          this._onclose = null;
-          this._onerror = null;
+      // Completely replace WebSocket with a mock that never fails
+      window.WebSocket = function(url) {
+        console.log('Mock WebSocket constructor called with:', url);
+        
+        // Create a mock WebSocket instance
+        const mock = {
+          url: url,
+          readyState: 0, // CONNECTING
           
-          // Schedule successful connection
-          this._connectionTimer = setTimeout(() => {
-            this.readyState = 1; // OPEN
-            if (this._onopen) {
-              this._onopen(new Event('open'));
+          // Event handlers
+          onopen: null,
+          onmessage: null,
+          onclose: null,
+          onerror: null,
+          
+          // Methods
+          send: function(data) {
+            console.log('Mock WebSocket send:', data);
+            // Simulate successful send with response
+            if (this.readyState === 1 && this.onmessage) {
+              setTimeout(() => {
+                this.onmessage({
+                  data: JSON.stringify({
+                    type: 'status',
+                    data: 'Mock server response',
+                    timestamp: Date.now()
+                  })
+                });
+              }, 100);
             }
-          }, 150);
-        }
-        
-        get onopen() { return this._onopen; }
-        set onopen(handler) {
-          this._onopen = handler;
-        }
-        
-        get onmessage() { return this._onmessage; }
-        set onmessage(handler) {
-          this._onmessage = handler;
-        }
-        
-        get onclose() { return this._onclose; }
-        set onclose(handler) {
-          this._onclose = handler;
-        }
-        
-        get onerror() { return this._onerror; }
-        set onerror(handler) {
-          this._onerror = handler;
-          // Don't trigger error events in successful mock
-        }
-        
-        send(data) {
-          // Mock successful send
-          setTimeout(() => {
-            if (this._onmessage) {
-              const mockResponse = {
-                data: JSON.stringify({
-                  type: 'status',
-                  data: 'Mock server response',
-                  timestamp: Date.now()
-                })
-              };
-              this._onmessage(mockResponse);
+          },
+          
+          close: function(code = 1000, reason = 'Normal closure') {
+            console.log('Mock WebSocket close called');
+            this.readyState = 3; // CLOSED
+            if (this.onclose) {
+              this.onclose({
+                type: 'close',
+                wasClean: true,
+                code: code,
+                reason: reason
+              });
             }
-          }, 50);
-        }
-        
-        close() {
-          if (this._connectionTimer) {
-            clearTimeout(this._connectionTimer);
+          },
+          
+          addEventListener: function(type, listener) {
+            this['on' + type] = listener;
+          },
+          
+          removeEventListener: function(type, listener) {
+            if (this['on' + type] === listener) {
+              this['on' + type] = null;
+            }
           }
-          this.readyState = 3; // CLOSED
-          if (this._onclose) {
-            this._onclose(new CloseEvent('close', { wasClean: true, code: 1000, reason: 'Normal closure' }));
-          }
-        }
+        };
         
-        // Static constants
-        static get CONNECTING() { return 0; }
-        static get OPEN() { return 1; }
-        static get CLOSING() { return 2; }
-        static get CLOSED() { return 3; }
+        // Simulate successful connection immediately
+        setTimeout(() => {
+          console.log('Mock WebSocket: Simulating successful connection');
+          mock.readyState = 1; // OPEN
+          if (mock.onopen) {
+            console.log('Mock WebSocket: Calling onopen handler');
+            try {
+              mock.onopen({ type: 'open', target: mock });
+            } catch (e) {
+              console.error('Error in mock onopen:', e);
+            }
+          }
+        }, 50);
+        
+        return mock;
       };
       
-      // Add constants to the constructor function
+      // Add static constants
       window.WebSocket.CONNECTING = 0;
       window.WebSocket.OPEN = 1;
       window.WebSocket.CLOSING = 2;
       window.WebSocket.CLOSED = 3;
+      
+      console.log('Simple WebSocket mock installed');
     });
   }
 
