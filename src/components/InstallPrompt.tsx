@@ -100,7 +100,7 @@ export const InstallPrompt: React.FC = () => {
         </div>
       </div>
 
-      <style jsx>{`
+      <style>{`
         .install-prompt {
           position: fixed;
           bottom: 0;

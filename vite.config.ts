@@ -10,7 +10,9 @@ export default defineConfig({
       workbox: {
         globPatterns: ['**/*.{js,css,html,ico,png,svg}'],
         navigateFallback: '/Chat_github/index.html',
-        navigateFallbackDenylist: [/^\/_/, /\/[^/?]+\.[^/]+$/]
+        navigateFallbackDenylist: [/^\/_/, /\/[^/?]+\.[^/]+$/],
+        skipWaiting: true,
+        clientsClaim: true
       },
       includeAssets: ['favicon.ico', 'apple-touch-icon.png', 'masked-icon.svg'],
       manifest: {
@@ -18,15 +20,32 @@ export default defineConfig({
         short_name: 'Chat GitHub',
         description: 'Mobile-First AI CLI & Text Editor for GitHub',
         theme_color: '#000000',
-        background_color: '#ffffff',
+        background_color: '#000000',
         scope: '/Chat_github/',
         display: 'standalone',
+        orientation: 'portrait-primary',
         start_url: '/Chat_github/',
+        categories: ['developer', 'productivity', 'utilities'],
+        lang: 'zh-TW',
+        prefer_related_applications: false,
         icons: [
           {
             src: '/Chat_github/vite.svg',
-            sizes: 'any',
-            type: 'image/svg+xml'
+            sizes: '192x192',
+            type: 'image/svg+xml',
+            purpose: 'any'
+          },
+          {
+            src: '/Chat_github/vite.svg',
+            sizes: '512x512',
+            type: 'image/svg+xml',
+            purpose: 'any'
+          },
+          {
+            src: '/Chat_github/vite.svg',
+            sizes: '192x192',
+            type: 'image/svg+xml',
+            purpose: 'maskable'
           }
         ]
       }

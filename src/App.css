@@ -16,6 +16,31 @@
 html, body, #root {
   height: 100%;
   overflow: hidden;
+  /* iOS specific fixes */
+  -webkit-overflow-scrolling: touch;
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+/* iOS viewport fixes */
+@supports (-webkit-touch-callout: none) {
+  html, body, #root {
+    height: -webkit-fill-available;
+  }
+}
+
+/* Use custom viewport height for iOS */
+:root {
+  --vh: 1vh;
+}
+
+@media screen and (max-device-width: 768px) {
+  .app,
+  .cli-container,
+  .editor-container {
+    height: calc(var(--vh, 1vh) * 100);
+  }
 }
 
 body {
@@ -30,9 +55,15 @@ body {
 
 .app {
   height: 100vh;
+  height: -webkit-fill-available; /* iOS fix */
   display: flex;
   flex-direction: column;
   background: #000;
+  /* iOS safe area support */
+  padding-top: env(safe-area-inset-top);
+  padding-bottom: env(safe-area-inset-bottom);
+  padding-left: env(safe-area-inset-left);
+  padding-right: env(safe-area-inset-right);
 }
 
 /* CLI Styles */
@@ -40,6 +71,7 @@ body {
   display: flex;
   flex-direction: column;
   height: 100vh;
+  height: -webkit-fill-available; /* iOS fix */
   background: #000;
   color: #fff;
 }
@@ -54,6 +86,11 @@ body {
   scroll-behavior: smooth;
   word-break: break-word;
   overflow-wrap: break-word;
+  /* iOS scrolling improvements */
+  -webkit-overflow-scrolling: touch;
+  /* Allow text selection in CLI history on iOS */
+  -webkit-user-select: text;
+  user-select: text;
 }
 
 .cli-line {
@@ -84,13 +121,18 @@ body {
   border: none;
   color: #fff;
   font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "WenQuanYi Zen Hei", sans-serif;
-  font-size: 16px;
+  font-size: 16px; /* Prevent zoom on iOS */
   outline: none;
   padding: 0.75rem;
   border-radius: 4px;
   border: 1px solid #333;
   ime-mode: auto;
   composition-mode: auto;
+  /* iOS specific input fixes */
+  -webkit-appearance: none;
+  -webkit-border-radius: 4px;
+  -webkit-user-select: text;
+  user-select: text;
 }
 
 .cli-input:focus {
@@ -107,6 +149,7 @@ body {
   display: flex;
   flex-direction: column;
   height: 100vh;
+  height: -webkit-fill-available; /* iOS fix */
   background: #0d1117;
 }
 
