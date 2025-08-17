@@ -4,6 +4,7 @@ import { GitHubService } from '../services/github'
 import { AIService } from '../services/ai'
 import { DiffService } from '../services/diff'
 import { WebSocketService, createWebSocketServer } from '../services/websocket'
+import { VersionService } from '../services/version'
 
 const getDefaultFileContent = (path: string): string => {
   const ext = path.split('.').pop()?.toLowerCase()
@@ -143,6 +144,9 @@ export const CLI: React.FC = () => {
         break
       case 'tokens':
         await estimateTokens()
+        break
+      case 'update':
+        await handleUpdateCommand()
         break
       case 'help':
         showHelp()
@@ -858,6 +862,80 @@ export const CLI: React.FC = () => {
     addHistory(`Estimated tokens: ${tokens}`)
   }
 
+  const handleUpdateCommand = async () => {
+    addHistory('🔄 Checking for updates...')
+    
+    try {
+      const currentVersion = VersionService.getCurrentVersion()
+      const repoOwner = 'WangChengYeh'
+      const repoName = 'Chat_github'
+      
+      const releaseData = await VersionService.getLatestRelease(repoOwner, repoName)
+      const latestVersion = releaseData.tag_name || releaseData.name || 'unknown'
+      const publishedAt = new Date(releaseData.published_at).toLocaleDateString()
+      const isDevelopment = (releaseData as any).isDevelopment || false
+      
+      addHistory(`📦 Current version: ${currentVersion}`)
+      addHistory(`🚀 Latest ${isDevelopment ? 'development' : 'release'}: ${latestVersion}`)
+      addHistory(`📅 Updated: ${publishedAt}`)
+      
+      if (isDevelopment) {
+        addHistory('💡 No formal releases found - showing development version')
+      }
+      
+      const comparison = isDevelopment ? 'latest' : VersionService.compareVersions(currentVersion, latestVersion)
+      
+      switch (comparison) {
+        case 'latest':
+          addHistory('✅ You are using the latest version!')
+          addHistory('💡 Refresh the page to ensure you have the latest build.')
+          break
+          
+        case 'newer':
+          addHistory('🚀 You are using a newer version than the latest release!')
+          addHistory('💡 You might be using a development build.')
+          break
+          
+        case 'outdated':
+          addHistory('🆕 New version available!')
+          addHistory('─'.repeat(50))
+          addHistory('📝 Release Notes:')
+          
+          const noteLines = VersionService.formatReleaseNotes(releaseData.body, 10)
+          noteLines.forEach(line => addHistory(line))
+          
+          if (releaseData.body && releaseData.body.split('\n').length > 10) {
+            addHistory('... (see full release notes on GitHub)')
+          }
+          
+          addHistory('─'.repeat(50))
+          addHistory('🔗 Update Instructions:')
+          addHistory('1. Visit: https://wangchengyeh.github.io/Chat_github/')
+          addHistory('2. Refresh the page (Ctrl/Cmd + F5)')
+          addHistory('3. Or reinstall the PWA from your app drawer')
+          addHistory('4. Clear browser cache if needed')
+          
+          // For PWA, suggest refreshing
+          if ('serviceWorker' in navigator) {
+            addHistory('')
+            addHistory('🔄 PWA Update:')
+            addHistory('- Close all app tabs/windows')
+            addHistory('- Reopen the app')
+            addHistory('- The service worker will fetch the latest version')
+          }
+          break
+      }
+      
+      addHistory('')
+      addHistory(`🌟 GitHub: https://github.com/${repoOwner}/${repoName}`)
+      
+    } catch (error) {
+      addHistory(`❌ Update check failed: ${error instanceof Error ? error.message : error}`)
+      addHistory('💡 Try visiting the GitHub repository directly:')
+      addHistory('   https://github.com/WangChengYeh/Chat_github')
+    }
+  }
+
   const showHelp = () => {
     const commands = [
       '/open <path> - Load file from GitHub',
@@ -876,6 +954,7 @@ export const CLI: React.FC = () => {
       '/config - Open configuration',
       '/save - Save current file to local Downloads',
       '/tokens - Estimate token usage',
+      '/update - Check for application updates',
       '/editor - Switch to editor',
       '/tool [upload|download] - Switch to file transfer tools',
       '/clear - Clear history',
