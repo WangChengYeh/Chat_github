@@ -8,7 +8,9 @@ export default defineConfig({
     VitePWA({
       registerType: 'autoUpdate',
       workbox: {
-        globPatterns: ['**/*.{js,css,html,ico,png,svg}']
+        globPatterns: ['**/*.{js,css,html,ico,png,svg}'],
+        navigateFallback: '/Chat_github/index.html',
+        navigateFallbackDenylist: [/^\/_/, /\/[^/?]+\.[^/]+$/]
       },
       includeAssets: ['favicon.ico', 'apple-touch-icon.png', 'masked-icon.svg'],
       manifest: {
@@ -17,11 +19,12 @@ export default defineConfig({
         description: 'Mobile-First AI CLI & Text Editor for GitHub',
         theme_color: '#000000',
         background_color: '#ffffff',
+        scope: '/Chat_github/',
         display: 'standalone',
-        start_url: '/',
+        start_url: '/Chat_github/',
         icons: [
           {
-            src: 'vite.svg',
+            src: '/Chat_github/vite.svg',
             sizes: 'any',
             type: 'image/svg+xml'
           }

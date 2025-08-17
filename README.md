@@ -133,17 +133,38 @@ A minimal, phone-friendly React PWA for editing GitHub repository files using AI
 - **HTTPS Required**: For PWA and clipboard features
 
 ### **PWA Installation**
-#### **Mobile (iOS/Android)**
-1. Open URL in Safari/Chrome
-2. Tap "Add to Home Screen" 
-3. Confirm installation
-4. Launch from home screen
 
-#### **Desktop (Chrome/Edge)**
-1. Visit URL in browser
-2. Click install icon (⊕) in address bar
-3. Click "Install Chat GitHub"
-4. App opens in dedicated window
+#### **Mobile (iOS Safari)**
+1. Visit https://wangchengyeh.github.io/Chat_github/
+2. Tap the **Share** button (square with arrow)
+3. Scroll down and tap **"Add to Home Screen"**
+4. Edit name if desired, then tap **"Add"**
+5. App icon appears on home screen
+6. Launch from home screen for full standalone experience
+
+#### **Mobile (Android Chrome)**
+1. Visit https://wangchengyeh.github.io/Chat_github/
+2. Tap the browser menu (three dots)
+3. Select **"Add to Home screen"** or look for install banner
+4. Tap **"Install"** when prompted
+5. App installs like a native app
+6. Launch from app drawer or home screen
+
+#### **Desktop (Chrome/Edge/Safari)**
+1. Visit https://wangchengyeh.github.io/Chat_github/
+2. Look for install icon (⊕ or download icon) in address bar
+3. Click the install icon
+4. Click **"Install Chat GitHub"** in the popup
+5. App opens in dedicated window (no browser UI)
+6. Access from Start menu/Applications folder
+
+#### **PWA Features After Installation**
+- **Offline Access**: Works without internet connection
+- **App-like Experience**: No browser address bar or tabs
+- **Home Screen Icon**: Quick access like native apps  
+- **Push Notifications**: (Future feature)
+- **Background Sync**: (Future feature)
+- **File System Access**: Direct file uploads/downloads
 
 ### **Self-Hosting**
 ```bash
@@ -152,6 +173,256 @@ cd Chat_github
 npm install
 npm run build
 # Deploy dist/ folder to your hosting provider
+```
+
+### **PWA Configuration for GitHub Pages**
+
+#### **1. Web App Manifest Setup**
+Ensure your `manifest.webmanifest` includes proper GitHub Pages paths:
+
+```json
+{
+  "name": "Chat GitHub - Mobile AI Editor",
+  "short_name": "Chat GitHub",
+  "description": "AI-powered mobile code editor for GitHub",
+  "start_url": "/Chat_github/",
+  "scope": "/Chat_github/",
+  "display": "standalone",
+  "background_color": "#1a1a1a",
+  "theme_color": "#0969da",
+  "icons": [
+    {
+      "src": "/Chat_github/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "/Chat_github/icon-512.png", 
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}
+```
+
+#### **2. Service Worker Configuration**
+Configure your service worker with correct GitHub Pages paths:
+
+```javascript
+// sw.js - Service Worker for GitHub Pages PWA
+const CACHE_NAME = 'chat-github-v1.0.0';
+const REPO_PATH = '/Chat_github';
+
+// Files to cache for offline functionality
+const urlsToCache = [
+  `${REPO_PATH}/`,
+  `${REPO_PATH}/index.html`,
+  `${REPO_PATH}/assets/index.js`,
+  `${REPO_PATH}/assets/index.css`,
+  `${REPO_PATH}/manifest.webmanifest`,
+  `${REPO_PATH}/icon-192.png`,
+  `${REPO_PATH}/icon-512.png`
+];
+
+// Install event - cache resources
+self.addEventListener('install', (event) => {
+  event.waitUntil(
+    caches.open(CACHE_NAME)
+      .then((cache) => cache.addAll(urlsToCache))
+  );
+});
+
+// Fetch event - serve from cache when offline
+self.addEventListener('fetch', (event) => {
+  event.respondWith(
+    caches.match(event.request)
+      .then((response) => {
+        return response || fetch(event.request);
+      })
+  );
+});
+```
+
+#### **3. HTML Configuration**
+Add these tags to your `index.html` `<head>`:
+
+```html
+<!-- PWA Manifest -->
+<link rel="manifest" href="/Chat_github/manifest.webmanifest">
+
+<!-- Canonical URL for GitHub Pages -->
+<link rel="canonical" href="https://wangchengyeh.github.io/Chat_github/">
+
+<!-- Apple PWA Support -->
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="Chat GitHub">
+<link rel="apple-touch-icon" href="/Chat_github/icon-192.png">
+
+<!-- Service Worker Registration -->
+<script>
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+      navigator.serviceWorker.register('/Chat_github/sw.js', {
+        scope: '/Chat_github/'
+      }).then((registration) => {
+        console.log('SW registered: ', registration);
+      }).catch((registrationError) => {
+        console.log('SW registration failed: ', registrationError);
+      });
+    });
+  }
+</script>
+```
+
+#### **4. GitHub Pages Deployment Requirements**
+- **HTTPS**: GitHub Pages provides HTTPS by default (required for PWA)
+- **Path Configuration**: All URLs must include repository name (`/Chat_github/`)
+- **Base URL**: Set `base: '/Chat_github/'` in `vite.config.ts`
+- **Asset Paths**: Use relative paths or full repository paths
+- **Cache Version**: Update `CACHE_NAME` when deploying new versions
+
+#### **5. Build Configuration**
+Update your `vite.config.ts` for GitHub Pages:
+
+```typescript
+import { defineConfig } from 'vite'
+import react from '@vitejs/plugin-react'
+import { VitePWA } from 'vite-plugin-pwa'
+
+export default defineConfig({
+  plugins: [
+    react(),
+    VitePWA({
+      registerType: 'autoUpdate',
+      workbox: {
+        globPatterns: ['**/*.{js,css,html,ico,png,svg,webmanifest}']
+      },
+      manifest: {
+        name: 'Chat GitHub - Mobile AI Editor',
+        short_name: 'Chat GitHub',
+        start_url: '/Chat_github/',
+        scope: '/Chat_github/',
+        display: 'standalone'
+      }
+    })
+  ],
+  base: '/Chat_github/', // Critical for GitHub Pages
+  build: {
+    outDir: 'dist',
+    assetsDir: 'assets'
+  }
+})
+```
+
+#### **6. GitHub Pages PWA Deployment Workflow**
+
+Follow these steps to deploy your PWA to GitHub Pages:
+
+##### **Step 1: Repository Setup**
+```bash
+# 1. Enable GitHub Pages in repository settings
+# Settings → Pages → Source: Deploy from a branch → main branch
+
+# 2. Ensure proper file structure
+/
+├── index.html              # Main HTML file
+├── manifest.webmanifest    # PWA manifest
+├── sw.js                   # Service worker
+├── icon-192.png           # PWA icon (192x192)
+├── icon-512.png           # PWA icon (512x512)
+└── assets/                # Built assets directory
+```
+
+##### **Step 2: Build with Correct Paths**
+```bash
+# Build with GitHub Pages base path
+npm run build
+
+# Verify manifest paths in dist/
+cat dist/manifest.webmanifest  # Should show /Chat_github/ paths
+```
+
+##### **Step 3: Deploy and Test**
+```bash
+# Push to main branch (GitHub Pages auto-deploys)
+git add dist/
+git commit -m "deploy: update PWA build"
+git push origin main
+
+# Test PWA features:
+# 1. Visit https://username.github.io/repository/
+# 2. Check browser DevTools → Application → Manifest
+# 3. Verify Service Worker is registered and active
+# 4. Test offline functionality (disconnect network)
+# 5. Look for install prompt on mobile/desktop
+```
+
+##### **Step 4: PWA Validation Checklist**
+- [ ] ✅ Manifest loads correctly (no 404 errors)
+- [ ] ✅ Service worker registers and caches resources
+- [ ] ✅ App works offline (shows cached content)
+- [ ] ✅ Install prompt appears on supported browsers
+- [ ] ✅ Icons display correctly in install prompt
+- [ ] ✅ App launches in standalone mode when installed
+- [ ] ✅ All paths use correct repository prefix
+- [ ] ✅ HTTPS certificate is valid (GitHub Pages default)
+
+##### **Step 5: Troubleshooting Common Issues**
+
+| Issue | Cause | Solution |
+|-------|-------|----------|
+| 404 on manifest.webmanifest | Wrong path in HTML | Use `/repository-name/manifest.webmanifest` |
+| Service worker not registering | Incorrect scope/path | Set scope to `/repository-name/` |
+| Install prompt not showing | Missing manifest properties | Add `start_url`, `display: "standalone"` |
+| Icons not loading | Wrong icon paths | Use full GitHub Pages paths |
+| Offline doesn't work | Cache paths mismatch | Update `urlsToCache` in service worker |
+| App reloads instead of staying in standalone | Wrong `scope` in manifest | Ensure scope matches start_url path |
+
+##### **Step 6: GitHub Actions Automation (Optional)**
+Create `.github/workflows/deploy-pwa.yml`:
+
+```yaml
+name: Deploy PWA to GitHub Pages
+
+on:
+  push:
+    branches: [ main ]
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+          
+      - name: Install dependencies
+        run: npm ci
+        
+      - name: Build PWA
+        run: npm run build
+        
+      - name: Setup Pages
+        uses: actions/configure-pages@v3
+        
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v2
+        with:
+          path: './dist'
+          
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v2
 ```
 
 ---
