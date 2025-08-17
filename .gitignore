@@ -52,6 +52,7 @@ coverage/
 
 # Config
 .config
+.config.*
 
 # test
 playwright-report
