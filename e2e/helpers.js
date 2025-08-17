@@ -426,7 +426,7 @@ export class PWATestHelpers {
     
     // Apply changes
     await this.executeCommand('/apply');
-    await expect(this.page.locator('.cli-history')).toContainText('Changes applied to editor');
+    await expect(this.page.locator('.cli-history')).toContainText('AI changes applied to editor');
     
     // Verify content if provided
     if (expectedContent) {
