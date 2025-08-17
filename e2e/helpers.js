@@ -45,7 +45,7 @@ export class PWATestHelpers {
   }
 
   /**
-   * Setup test configuration
+   * Setup test configuration with AI support
    */
   async setupConfig() {
     // Mock all GitHub API calls to avoid authentication issues
@@ -342,5 +342,151 @@ export class PWATestHelpers {
       path: `e2e/screenshots/${name}-${timestamp}.png`,
       fullPage: true 
     });
+  }
+
+  /**
+   * Mock OpenAI API with custom response
+   */
+  async mockAIResponse(instruction, response, options = {}) {
+    await this.page.route('**/chat/completions', route => {
+      const requestBody = route.request().postDataJSON();
+      
+      // Verify request structure
+      expect(requestBody.messages).toBeTruthy();
+      expect(requestBody.model).toBeTruthy();
+      
+      // Check if instruction matches
+      const userMessage = requestBody.messages.find(m => m.role === 'user');
+      if (instruction && userMessage) {
+        expect(userMessage.content).toContain(instruction);
+      }
+      
+      // Verify model and temperature if specified
+      if (options.model) {
+        expect(requestBody.model).toBe(options.model);
+      }
+      if (options.temperature !== undefined) {
+        expect(requestBody.temperature).toBe(options.temperature);
+      }
+      
+      route.fulfill({
+        status: options.status || 200,
+        body: JSON.stringify({
+          id: `chatcmpl-${Date.now()}`,
+          object: 'chat.completion',
+          created: Math.floor(Date.now() / 1000),
+          model: requestBody.model,
+          choices: [{
+            index: 0,
+            message: {
+              role: 'assistant',
+              content: response
+            },
+            finish_reason: 'stop'
+          }],
+          usage: {
+            prompt_tokens: options.promptTokens || 100,
+            completion_tokens: options.completionTokens || 200,
+            total_tokens: (options.promptTokens || 100) + (options.completionTokens || 200)
+          }
+        })
+      });
+    });
+  }
+
+  /**
+   * Mock OpenAI API error
+   */
+  async mockAIError(errorType = 'rate_limit_error', message = 'Rate limit exceeded', status = 429) {
+    await this.page.route('**/chat/completions', route => {
+      route.fulfill({
+        status,
+        body: JSON.stringify({
+          error: {
+            message,
+            type: errorType,
+            code: errorType
+          }
+        })
+      });
+    });
+  }
+
+  /**
+   * Execute AI workflow: open file, send instruction, apply changes
+   */
+  async executeAIWorkflow(filename, instruction, expectedContent = null) {
+    // Open file
+    await this.executeCommand(`/open ${filename}`);
+    await expect(this.page.locator('.cli-history')).toContainText(`Opened ${filename}`);
+    
+    // Send AI instruction
+    await this.executeCommand(instruction);
+    await expect(this.page.locator('.cli-history')).toContainText('AI transformation completed', { timeout: 10000 });
+    
+    // Apply changes
+    await this.executeCommand('/apply');
+    await expect(this.page.locator('.cli-history')).toContainText('Changes applied to editor');
+    
+    // Verify content if provided
+    if (expectedContent) {
+      await this.executeCommand('/editor');
+      await expect(this.page.locator('.editor-content')).toContainText(expectedContent);
+      await this.executeCommand('/cli');
+    }
+  }
+
+  /**
+   * Verify AI request contains proper context
+   */
+  async verifyAIContext(filename, originalContent) {
+    await this.page.route('**/chat/completions', route => {
+      const requestBody = route.request().postDataJSON();
+      const messages = requestBody.messages;
+      
+      // Check system message contains file context
+      const systemMessage = messages.find(m => m.role === 'system');
+      expect(systemMessage).toBeTruthy();
+      expect(systemMessage.content).toContain(filename);
+      expect(systemMessage.content).toContain(originalContent);
+      
+      // Mock response
+      route.fulfill({
+        status: 200,
+        body: JSON.stringify({
+          choices: [{
+            message: { content: 'Mocked AI response' }
+          }]
+        })
+      });
+    });
+  }
+
+  /**
+   * Switch AI model and verify configuration
+   */
+  async switchAIModel(modelName) {
+    await this.executeCommand(`/model ${modelName}`);
+    await expect(this.page.locator('.cli-history')).toContainText(`Switched to model: ${modelName}`);
+    
+    // Verify model is updated in config
+    const config = await this.page.evaluate(() => {
+      return JSON.parse(localStorage.getItem('chat-github-config') || '{}');
+    });
+    expect(config.model).toBe(modelName);
+  }
+
+  /**
+   * Test token estimation
+   */
+  async testTokenEstimation(expectedContent) {
+    await this.executeCommand('/tokens');
+    await expect(this.page.locator('.cli-history')).toContainText('Token estimation:');
+    await expect(this.page.locator('.cli-history')).toContainText('Current content:');
+    await expect(this.page.locator('.cli-history')).toContainText('tokens');
+    
+    if (expectedContent) {
+      await expect(this.page.locator('.cli-history')).toContainText(expectedContent);
+    }
   }
 }
