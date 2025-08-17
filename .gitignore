@@ -4,7 +4,7 @@ node_modules/
 .pnp.js
 
 # Production build
-/dist
+#/dist
 
 # Environment variables
 .env
@@ -52,3 +52,7 @@ coverage/
 
 # Config
 .config
+
+# test
+playwright-report
+test-results
