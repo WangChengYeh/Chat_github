@@ -34,8 +34,13 @@ Note: If working with Chinese text, preserve proper character encoding and forma
             { role: 'system', content: systemPrompt },
             { role: 'user', content: userPrompt }
           ],
-          temperature: this.temperature,
-          max_tokens: 4000,
+          ...(this.model === 'gpt-5' ? {
+            max_completion_tokens: 4000,
+            // GPT-5 only supports default temperature (1.0)
+          } : {
+            temperature: this.temperature,
+            max_tokens: 4000,
+          }),
         }),
       })
 
@@ -49,7 +54,17 @@ Note: If working with Chinese text, preserve proper character encoding and forma
         throw new Error('No response from AI')
       }
 
-      return data.choices[0].message.content.trim()
+      let content = data.choices[0].message.content.trim()
+      
+      // Clean up common AI response artifacts
+      if (content.startsWith('---START FILE---')) {
+        content = content.replace(/^---START FILE---\s*/, '')
+      }
+      if (content.endsWith('---END FILE---')) {
+        content = content.replace(/\s*---END FILE---$/, '')
+      }
+      
+      return content
     } catch (error) {
       throw new Error(`Failed to transform file: ${error}`)
     }
