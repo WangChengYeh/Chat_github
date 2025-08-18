@@ -51,12 +51,26 @@ html, body, #root {
 }
 
 /* Ensure scrollable areas have proper touch scrolling on iOS */
+.cli-history,
 .editor-content,
 .config-content,
 .tool-section,
 .log-content {
   -webkit-overflow-scrolling: touch;
   overflow-y: auto;
+}
+
+/* Additional iOS scrolling fixes for CLI */
+@supports (-webkit-touch-callout: none) {
+  .cli-history {
+    /* Force hardware acceleration for smooth scrolling */
+    -webkit-transform: translateZ(0);
+    transform: translateZ(0);
+    /* Ensure momentum scrolling */
+    -webkit-overflow-scrolling: touch;
+    /* Make sure it can scroll */
+    min-height: 0;
+  }
 }
 
 @media screen and (max-device-width: 768px) {
@@ -98,6 +112,8 @@ body {
   height: -webkit-fill-available; /* iOS fix */
   background: #000;
   color: #fff;
+  /* Ensure proper overflow handling */
+  overflow: hidden;
 }
 
 .cli-history {

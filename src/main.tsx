@@ -22,32 +22,13 @@ if (navigator.userAgent.includes('iPhone') || navigator.userAgent.includes('iPad
     setTimeout(setVH, 100) // Delay to ensure orientation change is complete
   })
   
-  // Prevent unwanted body scrolling, but allow scrolling in content areas
+  // Temporarily disable all touch prevention to test scrolling
+  // TODO: Re-enable with proper logic once scrolling is confirmed working
+  /*
   document.body.addEventListener('touchmove', (e) => {
-    const target = e.target as Element
-    if (!target) return
-    
-    // Allow scrolling in these areas
-    const scrollableAreas = [
-      '.cli-history', 
-      '.editor-content', 
-      '.config-content',
-      '.tool-section',
-      '.log-content',
-      '.cm-scroller', // CodeMirror editor
-      '.install-prompt' // Install prompt
-    ]
-    
-    // Check if the touch is within any scrollable area
-    const isInScrollableArea = scrollableAreas.some(selector => 
-      target.closest(selector)
-    )
-    
-    // Only prevent default if NOT in a scrollable area
-    if (!isInScrollableArea) {
-      e.preventDefault()
-    }
-  }, { passive: false })
+    // Let all touch events through for now
+  }, { passive: true })
+  */
 }
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
