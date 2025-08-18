@@ -19,8 +19,6 @@ html, body, #root {
   /* iOS specific fixes */
   -webkit-overflow-scrolling: touch;
   -webkit-touch-callout: none;
-  -webkit-user-select: none;
-  user-select: none;
 }
 
 /* iOS viewport fixes */
@@ -33,6 +31,32 @@ html, body, #root {
 /* Use custom viewport height for iOS */
 :root {
   --vh: 1vh;
+}
+
+/* Selective user selection rules */
+.app {
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+/* Allow text selection in content areas */
+.cli-history,
+.cli-input,
+.editor-content,
+.config-content,
+.cm-content,
+.cm-editor {
+  -webkit-user-select: text;
+  user-select: text;
+}
+
+/* Ensure scrollable areas have proper touch scrolling on iOS */
+.editor-content,
+.config-content,
+.tool-section,
+.log-content {
+  -webkit-overflow-scrolling: touch;
+  overflow-y: auto;
 }
 
 @media screen and (max-device-width: 768px) {
@@ -88,9 +112,6 @@ body {
   overflow-wrap: break-word;
   /* iOS scrolling improvements */
   -webkit-overflow-scrolling: touch;
-  /* Allow text selection in CLI history on iOS */
-  -webkit-user-select: text;
-  user-select: text;
 }
 
 .cli-line {
@@ -131,8 +152,6 @@ body {
   /* iOS specific input fixes */
   -webkit-appearance: none;
   -webkit-border-radius: 4px;
-  -webkit-user-select: text;
-  user-select: text;
 }
 
 .cli-input:focus {
