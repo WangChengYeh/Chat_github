@@ -16,9 +16,6 @@
 html, body, #root {
   height: 100%;
   overflow: hidden;
-  /* iOS specific fixes */
-  -webkit-overflow-scrolling: touch;
-  -webkit-touch-callout: none;
 }
 
 /* iOS viewport fixes */
@@ -282,9 +279,7 @@ body {
 
 .editor-content {
   flex: 1;
-  overflow-y: auto;
-  /* iOS specific scrolling */
-  -webkit-overflow-scrolling: touch;
+  overflow: hidden;
 }
 
 .editor-codemirror {
@@ -299,9 +294,6 @@ body {
   font-family: "SF Pro Text", "SF Mono", "PingFang SC", "Hiragino Sans GB", "Noto Sans CJK SC", "Source Han Sans SC", "Microsoft YaHei", "WenQuanYi Zen Hei", Monaco, 'Cascadia Code', 'Roboto Mono', Consolas, monospace !important;
   font-size: 14px;
   line-height: 1.6;
-  /* iOS scrolling fixes */
-  -webkit-overflow-scrolling: touch;
-  overflow-y: auto;
 }
 
 /* Force Chinese font support for CodeMirror */
