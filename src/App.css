@@ -16,6 +16,89 @@
 html, body, #root {
   height: 100%;
   overflow: hidden;
+  /* iOS specific fixes */
+  -webkit-overflow-scrolling: touch;
+  -webkit-touch-callout: none;
+}
+
+/* iOS viewport fixes */
+@supports (-webkit-touch-callout: none) {
+  html, body, #root {
+    height: -webkit-fill-available;
+  }
+}
+
+/* Use custom viewport height for iOS */
+:root {
+  --vh: 1vh;
+}
+
+/* Selective user selection rules */
+.app {
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+/* Allow text selection in content areas */
+.cli-history,
+.cli-input,
+.editor-content,
+.config-content,
+.cm-content,
+.cm-editor {
+  -webkit-user-select: text;
+  user-select: text;
+}
+
+/* Ensure scrollable areas have proper touch scrolling on iOS */
+.cli-history,
+.editor-content,
+.config-content,
+.tool-section,
+.log-content {
+  -webkit-overflow-scrolling: touch;
+  overflow-y: auto;
+}
+
+/* Additional iOS scrolling fixes for CLI and Editor */
+@supports (-webkit-touch-callout: none) {
+  .cli-history {
+    /* Force hardware acceleration for smooth scrolling */
+    -webkit-transform: translateZ(0);
+    transform: translateZ(0);
+    /* Ensure momentum scrolling */
+    -webkit-overflow-scrolling: touch;
+    /* Make sure it can scroll */
+    min-height: 0;
+  }
+  
+  .editor-content {
+    /* Force hardware acceleration for smooth scrolling */
+    -webkit-transform: translateZ(0);
+    transform: translateZ(0);
+    /* Ensure momentum scrolling */
+    -webkit-overflow-scrolling: touch;
+    /* Make sure it can scroll */
+    min-height: 0;
+  }
+  
+  .editor-codemirror .cm-scroller {
+    /* Force hardware acceleration for smooth scrolling */
+    -webkit-transform: translateZ(0);
+    transform: translateZ(0);
+    /* Ensure momentum scrolling */
+    -webkit-overflow-scrolling: touch;
+    /* Make sure it can scroll */
+    min-height: 0;
+  }
+}
+
+@media screen and (max-device-width: 768px) {
+  .app,
+  .cli-container,
+  .editor-container {
+    height: calc(var(--vh, 1vh) * 100);
+  }
 }
 
 body {
@@ -30,9 +113,15 @@ body {
 
 .app {
   height: 100vh;
+  height: -webkit-fill-available; /* iOS fix */
   display: flex;
   flex-direction: column;
   background: #000;
+  /* iOS safe area support */
+  padding-top: env(safe-area-inset-top);
+  padding-bottom: env(safe-area-inset-bottom);
+  padding-left: env(safe-area-inset-left);
+  padding-right: env(safe-area-inset-right);
 }
 
 /* CLI Styles */
@@ -40,8 +129,11 @@ body {
   display: flex;
   flex-direction: column;
   height: 100vh;
+  height: -webkit-fill-available; /* iOS fix */
   background: #000;
   color: #fff;
+  /* Ensure proper overflow handling */
+  overflow: hidden;
 }
 
 .cli-history {
@@ -54,6 +146,8 @@ body {
   scroll-behavior: smooth;
   word-break: break-word;
   overflow-wrap: break-word;
+  /* iOS scrolling improvements */
+  -webkit-overflow-scrolling: touch;
 }
 
 .cli-line {
@@ -84,13 +178,16 @@ body {
   border: none;
   color: #fff;
   font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "WenQuanYi Zen Hei", sans-serif;
-  font-size: 16px;
+  font-size: 16px; /* Prevent zoom on iOS */
   outline: none;
   padding: 0.75rem;
   border-radius: 4px;
   border: 1px solid #333;
   ime-mode: auto;
   composition-mode: auto;
+  /* iOS specific input fixes */
+  -webkit-appearance: none;
+  -webkit-border-radius: 4px;
 }
 
 .cli-input:focus {
@@ -107,6 +204,7 @@ body {
   display: flex;
   flex-direction: column;
   height: 100vh;
+  height: -webkit-fill-available; /* iOS fix */
   background: #0d1117;
 }
 
@@ -199,6 +297,9 @@ body {
   font-family: "SF Pro Text", "SF Mono", "PingFang SC", "Hiragino Sans GB", "Noto Sans CJK SC", "Source Han Sans SC", "Microsoft YaHei", "WenQuanYi Zen Hei", Monaco, 'Cascadia Code', 'Roboto Mono', Consolas, monospace !important;
   font-size: 14px;
   line-height: 1.6;
+  /* iOS scrolling fixes */
+  -webkit-overflow-scrolling: touch;
+  overflow-y: auto;
 }
 
 /* Force Chinese font support for CodeMirror */
