@@ -60,9 +60,29 @@ html, body, #root {
   overflow-y: auto;
 }
 
-/* Additional iOS scrolling fixes for CLI */
+/* Additional iOS scrolling fixes for CLI and Editor */
 @supports (-webkit-touch-callout: none) {
   .cli-history {
+    /* Force hardware acceleration for smooth scrolling */
+    -webkit-transform: translateZ(0);
+    transform: translateZ(0);
+    /* Ensure momentum scrolling */
+    -webkit-overflow-scrolling: touch;
+    /* Make sure it can scroll */
+    min-height: 0;
+  }
+  
+  .editor-content {
+    /* Force hardware acceleration for smooth scrolling */
+    -webkit-transform: translateZ(0);
+    transform: translateZ(0);
+    /* Ensure momentum scrolling */
+    -webkit-overflow-scrolling: touch;
+    /* Make sure it can scroll */
+    min-height: 0;
+  }
+  
+  .editor-codemirror .cm-scroller {
     /* Force hardware acceleration for smooth scrolling */
     -webkit-transform: translateZ(0);
     transform: translateZ(0);
@@ -277,6 +297,9 @@ body {
   font-family: "SF Pro Text", "SF Mono", "PingFang SC", "Hiragino Sans GB", "Noto Sans CJK SC", "Source Han Sans SC", "Microsoft YaHei", "WenQuanYi Zen Hei", Monaco, 'Cascadia Code', 'Roboto Mono', Consolas, monospace !important;
   font-size: 14px;
   line-height: 1.6;
+  /* iOS scrolling fixes */
+  -webkit-overflow-scrolling: touch;
+  overflow-y: auto;
 }
 
 /* Force Chinese font support for CodeMirror */
