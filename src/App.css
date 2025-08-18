@@ -282,7 +282,9 @@ body {
 
 .editor-content {
   flex: 1;
-  overflow: hidden;
+  overflow-y: auto;
+  /* iOS specific scrolling */
+  -webkit-overflow-scrolling: touch;
 }
 
 .editor-codemirror {
