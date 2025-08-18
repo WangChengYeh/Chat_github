@@ -10,21 +10,9 @@
   "icons": [
     {
       "src": "/Chat_github/vite.svg",
-      "sizes": "192x192",
+      "sizes": "any",
       "type": "image/svg+xml",
-      "purpose": "any"
-    },
-    {
-      "src": "/Chat_github/vite.svg",
-      "sizes": "512x512",
-      "type": "image/svg+xml",
-      "purpose": "any"
-    },
-    {
-      "src": "/Chat_github/vite.svg",
-      "sizes": "192x192",
-      "type": "image/svg+xml",
-      "purpose": "maskable"
+      "purpose": "any maskable"
     }
   ],
   "categories": ["developer", "productivity", "utilities"],
