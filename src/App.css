@@ -282,11 +282,14 @@ body {
 
 .editor-content {
   flex: 1;
-  overflow: hidden;
+  overflow-y: auto;
+  /* iOS specific scrolling */
+  -webkit-overflow-scrolling: touch;
 }
 
 .editor-codemirror {
   height: 100% !important;
+  overflow: hidden;
 }
 
 .editor-codemirror .cm-editor {
@@ -300,6 +303,8 @@ body {
   /* iOS scrolling fixes */
   -webkit-overflow-scrolling: touch;
   overflow-y: auto;
+  height: auto;
+  max-height: 100%;
 }
 
 /* Force Chinese font support for CodeMirror */
