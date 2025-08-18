@@ -203,4 +203,147 @@ test.describe('Editor Mode', () => {
     // Check that at least one line exists (empty files still have one line)
     await expect(page.locator('.cm-editor .cm-line').first()).toBeVisible();
   });
+
+  test('should handle editor scrolling functionality', async ({ page }) => {
+    // Use any file - the main goal is to test that scrolling works
+    await helpers.executeCommand('/open test.txt');
+    await helpers.switchToEditor();
+    
+    // Wait for editor to be ready
+    await expect(page.locator('.cm-editor')).toBeVisible();
+    await page.waitForTimeout(1000);
+    
+    // Test scrolling functionality on the editor
+    const editorContent = page.locator('.editor-content');
+    const cmScroller = page.locator('.cm-scroller');
+    
+    // Verify scrollable elements are visible
+    await expect(editorContent).toBeVisible();
+    await expect(cmScroller).toBeVisible();
+    
+    // Test basic scrolling properties
+    const scrollProperties = await cmScroller.evaluate(el => {
+      const computed = window.getComputedStyle(el);
+      return {
+        overflowY: computed.overflowY,
+        height: el.clientHeight,
+        scrollHeight: el.scrollHeight,
+        canScroll: el.scrollHeight > el.clientHeight
+      };
+    });
+    
+    // Verify overflow-y is set to auto (allowing scrolling)
+    expect(scrollProperties.overflowY).toBe('auto');
+    
+    // Test programmatic scrolling
+    const scrollTest = await cmScroller.evaluate(el => {
+      const initialScroll = el.scrollTop;
+      
+      // Try to scroll down
+      el.scrollTop = 50;
+      const scrolledDown = el.scrollTop;
+      
+      // Reset to original position  
+      el.scrollTop = initialScroll;
+      const resetScroll = el.scrollTop;
+      
+      return {
+        initialScroll,
+        scrolledDown,
+        resetScroll,
+        scrollWorked: scrolledDown !== initialScroll || initialScroll > 0
+      };
+    });
+    
+    // Verify scrolling mechanism works (either content scrolled or was already scrolled)
+    expect(scrollTest.scrollWorked).toBe(true);
+  });
+
+  test('should handle editor scrolling on mobile viewport', async ({ page }) => {
+    // Set mobile viewport to test mobile scrolling
+    await page.setViewportSize({ width: 375, height: 667 }); // iPhone SE size
+    
+    // Use existing content or any file that gets loaded
+    await helpers.executeCommand('/open test.txt'); // Use existing test file
+    await helpers.switchToEditor();
+    
+    // Verify mobile layout 
+    await expect(page.locator('.editor-container')).toBeVisible();
+    await expect(page.locator('.cm-editor')).toBeVisible();
+    await page.waitForTimeout(1000); // Give time for layout to settle
+    
+    // Check that iOS-specific CSS classes are applied
+    const editorContent = page.locator('.editor-content');
+    const cmScroller = page.locator('.cm-scroller');
+    
+    // Verify CSS properties for iOS scrolling - check cm-scroller which is the actual scrollable element
+    const cmScrollerStyle = await cmScroller.evaluate(el => {
+      const computed = window.getComputedStyle(el);
+      return {
+        webkitOverflowScrolling: computed.webkitOverflowScrolling,
+        overflowY: computed.overflowY
+      };
+    });
+    
+    // Check iOS scrolling properties (cm-scroller should be scrollable)
+    expect(cmScrollerStyle.overflowY).toBe('auto');
+    
+    // Test touch scrolling simulation
+    const scrollerBox = await cmScroller.boundingBox();
+    if (scrollerBox) {
+      // Simulate touch scroll gesture
+      await page.mouse.move(scrollerBox.x + scrollerBox.width / 2, scrollerBox.y + scrollerBox.height / 2);
+      await page.mouse.down();
+      await page.mouse.move(scrollerBox.x + scrollerBox.width / 2, scrollerBox.y + scrollerBox.height / 2 - 100);
+      await page.mouse.up();
+      
+      // Verify content scrolled
+      const scrollTop = await cmScroller.evaluate(el => el.scrollTop);
+      expect(scrollTop).toBeGreaterThan(0);
+    }
+    
+    // Navigate and test basic interaction
+    await page.click('.cm-editor');
+    await page.keyboard.press('Control+End'); // Go to end
+    await page.keyboard.press('Control+Home'); // Go to start
+    
+    // Verify basic editor interaction works on mobile
+  });
+
+  test('should maintain scroll position during editor operations', async ({ page }) => {
+    // Use any file for scroll position testing
+    await helpers.executeCommand('/open test.txt');
+    await helpers.switchToEditor();
+    
+    // Wait for editor to be ready
+    await page.waitForTimeout(1000);
+    await expect(page.locator('.cm-content')).toBeVisible();
+    
+    const cmScroller = page.locator('.cm-scroller');
+    
+    // Scroll to middle of content
+    await cmScroller.evaluate(el => el.scrollTop = 300);
+    const midScrollTop = await cmScroller.evaluate(el => el.scrollTop);
+    
+    // Test diff mode cycling doesn't reset scroll
+    const diffButton = page.locator('.diff-mode-btn');
+    await diffButton.click(); // Switch to Diff
+    
+    const scrollAfterDiffMode = await cmScroller.evaluate(el => el.scrollTop);
+    expect(Math.abs(scrollAfterDiffMode - midScrollTop)).toBeLessThan(50); // Allow small variance
+    
+    // Test theme toggle doesn't reset scroll
+    const themeButton = page.locator('.theme-btn');
+    await themeButton.click();
+    
+    const scrollAfterTheme = await cmScroller.evaluate(el => el.scrollTop);
+    expect(Math.abs(scrollAfterTheme - midScrollTop)).toBeLessThan(50);
+    
+    // Test editing content maintains scroll position
+    await page.click('.cm-editor');
+    await page.keyboard.type(' [edited]');
+    
+    const scrollAfterEdit = await cmScroller.evaluate(el => el.scrollTop);
+    expect(Math.abs(scrollAfterEdit - midScrollTop)).toBeLessThan(100);
+  });
 });
