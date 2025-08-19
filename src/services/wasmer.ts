@@ -8,6 +8,11 @@ export interface WasmerCompileResult {
 }
 
 export async function compileCWithWasmer(source: string, filename = 'program.c'): Promise<WasmerCompileResult> {
+  // Test hook: allow Playwright to inject a mock compiler to avoid network
+  if (typeof window !== 'undefined' && (window as any).__mockCompileCWithWasmer) {
+    const res = await (window as any).__mockCompileCWithWasmer(source, filename)
+    return res as WasmerCompileResult
+  }
   // Lazy-load the SDK to avoid increasing initial bundle size
   // Avoid bundler resolution by computing module specifier at runtime
   const mod = '@wasmer' + '/sdk'
