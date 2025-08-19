@@ -863,141 +863,46 @@ export const CLI: React.FC = () => {
   }
 
   const handleUpdateCommand = async () => {
-    addHistory('🔄 Checking for updates...')
-    
+    // Show current build time (Taipei) and attempt a live update
     try {
       const currentVersion = VersionService.getCurrentVersion()
-      const repoOwner = 'WangChengYeh'
-      const repoName = 'Chat_github'
-      
-      const releaseData = await VersionService.getLatestRelease(repoOwner, repoName)
-      const latestVersion = releaseData.tag_name || releaseData.name || 'unknown'
-      const publishedAtISO = releaseData.published_at
-      const fmtTpe = (d: Date) => {
-        const parts = new Intl.DateTimeFormat('en-CA', {
-          timeZone: 'Asia/Taipei', year: 'numeric', month: '2-digit', day: '2-digit',
-          hour: '2-digit', minute: '2-digit', hour12: false
-        }).formatToParts(d)
-        const get = (t: string) => parts.find(p => p.type === t)?.value || '00'
-        return `${get('year')}-${get('month')}-${get('day')} ${get('hour')}:${get('minute')} Taipei`
-      }
       const minutesAgo = (ms: number) => Math.max(0, Math.floor(ms / 60000))
-
-      // Current build time → minutes ago
-      let currentBuildLine = `📦 Current version: ${currentVersion}`
+      let line = `📦 Current version: ${currentVersion}`
       try {
-        // Accept formats: "YYYY-MM-DD HH:MM Taipei" or "... UTC"
         let dt: Date | null = null
         const mTpe = currentVersion.match(/^(\d{4}-\d{2}-\d{2}) (\d{2}:\d{2}) Taipei$/)
-        if (mTpe) {
-          const iso = `${mTpe[1]}T${mTpe[2]}:00+08:00`
-          dt = new Date(iso)
-        }
+        if (mTpe) dt = new Date(`${mTpe[1]}T${mTpe[2]}:00+08:00`)
         const mUtc = !dt && currentVersion.match(/^(\d{4}-\d{2}-\d{2}) (\d{2}:\d{2}) UTC$/)
-        if (!dt && mUtc) {
-          const iso = `${(mUtc as RegExpMatchArray)[1]}T${(mUtc as RegExpMatchArray)[2]}:00Z`
-          dt = new Date(iso)
-        }
-        if (dt) {
-          const mins = minutesAgo(Date.now() - dt.getTime())
-          currentBuildLine += `  (built ${mins} min ago)`
-        }
+        if (!dt && mUtc) dt = new Date(`${(mUtc as RegExpMatchArray)[1]}T${(mUtc as RegExpMatchArray)[2]}:00Z`)
+        if (dt) line += `  (built ${minutesAgo(Date.now() - dt.getTime())} min ago)`
       } catch {}
+      addHistory(line)
+      addHistory('🔄 Attempting live update...')
 
-      // Latest published time → minutes ago (release or repo updated_at)
-      let latestLineSuffix = ''
-      try {
-        if (publishedAtISO) {
-          const d = new Date(publishedAtISO)
-          const mins = minutesAgo(Date.now() - d.getTime())
-          latestLineSuffix = ` (${fmtTpe(d)} · ${mins} min ago)`
-        }
-      } catch {}
-      const isDevelopment = (releaseData as any).isDevelopment || false
-      
-      addHistory(currentBuildLine)
-      addHistory(`🚀 Latest ${isDevelopment ? 'development' : 'release'}: ${latestVersion}${latestLineSuffix}`)
-      
-      if (isDevelopment) {
-        addHistory('💡 No formal releases found - showing development version')
-      }
-      
-      const comparison = isDevelopment ? 'latest' : VersionService.compareVersions(currentVersion, latestVersion)
-      
-      switch (comparison) {
-        case 'latest':
-          addHistory('✅ You are using the latest version!')
-          addHistory('💡 You can refresh now to ensure the latest build.')
-          break
-          
-        case 'newer':
-          addHistory('🚀 You are using a newer version than the latest release!')
-          addHistory('💡 You might be using a development build.')
-          break
-          
-        case 'outdated':
-          addHistory('🆕 New version available!')
-          addHistory('─'.repeat(50))
-          addHistory('📝 Release Notes:')
-          
-          const noteLines = VersionService.formatReleaseNotes(releaseData.body, 10)
-          noteLines.forEach(line => addHistory(line))
-          
-          if (releaseData.body && releaseData.body.split('\n').length > 10) {
-            addHistory('... (see full release notes on GitHub)')
-          }
-          
-          addHistory('─'.repeat(50))
-          addHistory('🔗 Update Instructions:')
-          addHistory('1. This command will attempt a live update now')
-          addHistory('2. If that fails, manually refresh or relaunch the PWA')
-          
-          // Proceed to live update below
-          break
-      }
-      
-      addHistory('')
-      addHistory(`🌟 GitHub: https://github.com/${repoOwner}/${repoName}`)
-      
-      // Attempt a live PWA update via Service Worker
       if ('serviceWorker' in navigator) {
-        addHistory('🧩 Attempting live PWA update...')
-        try {
-          let reloaded = false
-          const onControllerChange = () => {
-            if (reloaded) return
-            reloaded = true
-            addHistory('✅ Update applied. Reloading...')
-            setTimeout(() => window.location.reload(), 300)
-          }
-          navigator.serviceWorker.addEventListener('controllerchange', onControllerChange, { once: true } as any)
-
-          const regs = await navigator.serviceWorker.getRegistrations()
-          if (!regs.length) {
-            addHistory('ℹ️ No service worker registration found. Try refreshing manually.')
-          } else {
-            // Trigger update checks on all registrations
-            await Promise.allSettled(regs.map(r => r.update()))
-            // Nudge any waiting worker (skipWaiting is already enabled in SW config)
-            regs.forEach(r => r.waiting && r.waiting.postMessage({ type: 'SKIP_WAITING' }))
-            // Fallback: if no controller change within timeout, suggest manual refresh
-            setTimeout(() => {
-              if (!reloaded) {
-                addHistory('ℹ️ If not reloaded, please refresh or relaunch the app.')
-              }
-            }, 4000)
-          }
-        } catch (e) {
-          addHistory(`⚠️ Live update attempt failed: ${e instanceof Error ? e.message : String(e)}`)
-          addHistory('💡 Please refresh the page or relaunch the installed app.')
+        let reloaded = false
+        const onControllerChange = () => {
+          if (reloaded) return
+          reloaded = true
+          addHistory('✅ Update applied. Reloading...')
+          setTimeout(() => window.location.reload(), 200)
+        }
+        navigator.serviceWorker.addEventListener('controllerchange', onControllerChange, { once: true } as any)
+        const regs = await navigator.serviceWorker.getRegistrations()
+        if (!regs.length) {
+          addHistory('ℹ️ No service worker registration found. Please refresh manually.')
+        } else {
+          await Promise.allSettled(regs.map(r => r.update()))
+          regs.forEach(r => r.waiting && r.waiting.postMessage({ type: 'SKIP_WAITING' }))
+          setTimeout(() => {
+            if (!reloaded) addHistory('ℹ️ If not reloaded, please refresh or relaunch the app.')
+          }, 3000)
         }
       } else {
         addHistory('ℹ️ Service worker not supported; please refresh the page.')
       }
     } catch (error) {
-      addHistory(`❌ Update check failed: ${error instanceof Error ? error.message : error}`)
-      addHistory('💡 Try visiting the GitHub repository directly:')
-      addHistory('   https://github.com/WangChengYeh/Chat_github')
+      addHistory(`❌ Update failed: ${error instanceof Error ? error.message : String(error)}`)
     }
   }
 
