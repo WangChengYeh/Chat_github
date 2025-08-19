@@ -71,6 +71,15 @@ export default defineConfig({
       use: { ...devices['Desktop Firefox'] },
     },
 
+    // Desktop Safari against preview (built PWA) for SW/manifest checks
+    {
+      name: 'webkit-pwa-preview',
+      use: {
+        ...devices['Desktop Safari'],
+        baseURL: 'http://localhost:4173/Chat_github',
+      },
+    },
+
     /* Test against branded browsers. */
     // {
     //   name: 'Microsoft Edge',
@@ -83,11 +92,20 @@ export default defineConfig({
   ],
 
   /* Run your local dev server before starting the tests */
-  webServer: {
-    command: 'npm run dev',
-    url: 'http://localhost:5173',
-    reuseExistingServer: !process.env.CI,
-    stdout: 'ignore',
-    stderr: 'pipe',
-  },
+  webServer: [
+    {
+      command: 'npm run dev',
+      url: 'http://localhost:5173',
+      reuseExistingServer: !process.env.CI,
+      stdout: 'ignore',
+      stderr: 'pipe',
+    },
+    {
+      command: 'npm run preview -- --port 4173 --strictPort',
+      url: 'http://localhost:4173/Chat_github/',
+      reuseExistingServer: true,
+      stdout: 'ignore',
+      stderr: 'pipe',
+    }
+  ],
 });
