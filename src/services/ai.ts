@@ -100,8 +100,7 @@ Note: If working with Chinese text, preserve proper character encoding and forma
           model: 'gpt-image-1',
           prompt,
           size,
-          n: 1,
-          response_format: 'b64_json'
+          n: 1
         })
       })
       const text = await response.text()
@@ -120,9 +119,27 @@ Note: If working with Chinese text, preserve proper character encoding and forma
         )
       }
       const data = JSON.parse(text)
-      const b64 = data?.data?.[0]?.b64_json
-      if (!b64) throw new Error('No image returned from AI')
-      return b64
+      const item = data?.data?.[0]
+      if (!item) throw new Error('No image returned from AI')
+      if (item.b64_json) {
+        return item.b64_json
+      }
+      if (item.url) {
+        // Fetch the image URL and convert to base64
+        const imgRes = await fetch(item.url)
+        if (!imgRes.ok) {
+          throw new Error(`Failed to fetch generated image URL: ${imgRes.status} ${imgRes.statusText}`)
+        }
+        const buf = new Uint8Array(await imgRes.arrayBuffer())
+        // Convert bytes to base64 efficiently
+        let binary = ''
+        const chunk = 0x8000
+        for (let i = 0; i < buf.length; i += chunk) {
+          binary += String.fromCharCode.apply(null, Array.from(buf.subarray(i, i + chunk)) as any)
+        }
+        return btoa(binary)
+      }
+      throw new Error('Unsupported image response format from AI')
     } catch (e) {
       throw new Error(`Failed to generate image: ${e}`)
     }
