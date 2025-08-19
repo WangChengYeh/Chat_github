@@ -888,7 +888,7 @@ export const CLI: React.FC = () => {
       switch (comparison) {
         case 'latest':
           addHistory('✅ You are using the latest version!')
-          addHistory('💡 Refresh the page to ensure you have the latest build.')
+          addHistory('💡 You can refresh now to ensure the latest build.')
           break
           
         case 'newer':
@@ -910,25 +910,51 @@ export const CLI: React.FC = () => {
           
           addHistory('─'.repeat(50))
           addHistory('🔗 Update Instructions:')
-          addHistory('1. Visit: https://wangchengyeh.github.io/Chat_github/')
-          addHistory('2. Refresh the page (Ctrl/Cmd + F5)')
-          addHistory('3. Or reinstall the PWA from your app drawer')
-          addHistory('4. Clear browser cache if needed')
+          addHistory('1. This command will attempt a live update now')
+          addHistory('2. If that fails, manually refresh or relaunch the PWA')
           
-          // For PWA, suggest refreshing
-          if ('serviceWorker' in navigator) {
-            addHistory('')
-            addHistory('🔄 PWA Update:')
-            addHistory('- Close all app tabs/windows')
-            addHistory('- Reopen the app')
-            addHistory('- The service worker will fetch the latest version')
-          }
+          // Proceed to live update below
           break
       }
       
       addHistory('')
       addHistory(`🌟 GitHub: https://github.com/${repoOwner}/${repoName}`)
       
+      // Attempt a live PWA update via Service Worker
+      if ('serviceWorker' in navigator) {
+        addHistory('🧩 Attempting live PWA update...')
+        try {
+          let reloaded = false
+          const onControllerChange = () => {
+            if (reloaded) return
+            reloaded = true
+            addHistory('✅ Update applied. Reloading...')
+            setTimeout(() => window.location.reload(), 300)
+          }
+          navigator.serviceWorker.addEventListener('controllerchange', onControllerChange, { once: true } as any)
+
+          const regs = await navigator.serviceWorker.getRegistrations()
+          if (!regs.length) {
+            addHistory('ℹ️ No service worker registration found. Try refreshing manually.')
+          } else {
+            // Trigger update checks on all registrations
+            await Promise.allSettled(regs.map(r => r.update()))
+            // Nudge any waiting worker (skipWaiting is already enabled in SW config)
+            regs.forEach(r => r.waiting && r.waiting.postMessage({ type: 'SKIP_WAITING' }))
+            // Fallback: if no controller change within timeout, suggest manual refresh
+            setTimeout(() => {
+              if (!reloaded) {
+                addHistory('ℹ️ If not reloaded, please refresh or relaunch the app.')
+              }
+            }, 4000)
+          }
+        } catch (e) {
+          addHistory(`⚠️ Live update attempt failed: ${e instanceof Error ? e.message : String(e)}`)
+          addHistory('💡 Please refresh the page or relaunch the installed app.')
+        }
+      } else {
+        addHistory('ℹ️ Service worker not supported; please refresh the page.')
+      }
     } catch (error) {
       addHistory(`❌ Update check failed: ${error instanceof Error ? error.message : error}`)
       addHistory('💡 Try visiting the GitHub repository directly:')
