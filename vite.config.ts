@@ -3,6 +3,12 @@ import react from '@vitejs/plugin-react-swc'
 import { VitePWA } from 'vite-plugin-pwa'
 
 export default defineConfig({
+  build: {
+    rollupOptions: {
+      // Prevent bundler from trying to resolve optional SDK at build time
+      external: ['@wasmer/sdk']
+    }
+  },
   define: (() => {
     // Build timestamp in Asia/Taipei (UTC+8), minute precision
     try {

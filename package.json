@@ -54,7 +54,8 @@
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "ws": "^8.18.0",
-    "zustand": "^4.5.7"
+    "zustand": "^4.5.7",
+    "@wasmer/sdk": "^1.4.0"
   },
   "devDependencies": {
     "@playwright/test": "^1.54.2",

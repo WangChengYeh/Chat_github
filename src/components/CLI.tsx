@@ -766,8 +766,10 @@ export const CLI: React.FC = () => {
 
   const handleCompileC = async (arg: string) => {
     // Compile a C source file to WebAssembly on the connected WebSocket server
-    // Usage: /cc [path/to/file.c]  (defaults to current config.path)
-    const cPath = (arg && arg.trim()) ? arg.trim() : (config.path || '')
+    // Usage: /cc [--wasmer] [path/to/file.c]  (defaults to current config.path)
+    const useWasmer = /--wasmer\b/.test(arg)
+    const cleaned = arg.replace(/--wasmer\b/, '').trim()
+    const cPath = cleaned ? cleaned : (config.path || '')
     if (!cPath) {
       addHistory('Usage: /cc <path/to/file.c> (or open a .c file and run /cc)')
       return
@@ -776,9 +778,9 @@ export const CLI: React.FC = () => {
       addHistory(`❌ Not a C source file: ${cPath}`)
       return
     }
-    if (!wsService || !wsService.isConnected()) {
-      addHistory('❌ Not connected to WebSocket server. Use /socket connect <ws://host:port> first.')
-      addHistory('Tip: /socket server 8080  — prints a server template. Install clang (wasm32-wasi) or emcc on the server.')
+    if (!useWasmer && (!wsService || !wsService.isConnected())) {
+      addHistory('❌ Not connected to WebSocket server. Use /socket connect <ws://host:port> first, or run /cc --wasmer to compile in-browser (experimental).')
+      addHistory('Tip: /socket server 8080  — prints a server template. Install emscripten (emcc) on the server.')
       return
     }
 
@@ -800,6 +802,34 @@ export const CLI: React.FC = () => {
       }
     } catch (e) {
       addHistory(`❌ Failed to load source file: ${e instanceof Error ? e.message : String(e)}`)
+      return
+    }
+
+    // If using Wasmer SDK, compile in-browser
+    if (useWasmer) {
+      addHistory('🧪 Using Wasmer SDK (llvm/clang package) to compile in browser...')
+      try {
+        const { compileCWithWasmer } = await import('../services/wasmer')
+        const res = await compileCWithWasmer(source, cPath.split('/').pop() || 'program.c')
+        if (res.stdout?.trim()) addHistory(res.stdout.trim())
+        if (res.stderr?.trim()) addHistory(res.stderr.trim())
+
+        // Download the resulting wasm
+        const outName = (cPath.split('/').pop() || 'program.c').replace(/\.c$/i, '.wasm')
+        const blob = new Blob([res.wasm], { type: 'application/wasm' })
+        const url = URL.createObjectURL(blob)
+        const a = document.createElement('a')
+        a.href = url
+        a.download = outName
+        a.style.display = 'none'
+        document.body.appendChild(a)
+        a.click()
+        setTimeout(() => { document.body.removeChild(a); URL.revokeObjectURL(url) }, 100)
+        addHistory(`✅ Downloaded ${outName} (in-browser compile)`) 
+      } catch (e) {
+        addHistory(`❌ Wasmer compile failed: ${e instanceof Error ? e.message : String(e)}`)
+        addHistory('Note: This feature requires network access to fetch the llvm/clang package from Wasmer registry.')
+      }
       return
     }
 
@@ -1086,7 +1116,7 @@ export const CLI: React.FC = () => {
       '/config - Open configuration',
       '/save - Save current file to local Downloads',
       '/tokens - Estimate token usage',
-      '/cc [file.c] - Compile C→WebAssembly on server (emscripten)',
+      '/cc [--wasmer] [file.c] - Compile C→WebAssembly (server emscripten or in-browser via Wasmer)',
       '/img <prompt> - Generate image via AI and upload',
       '/update - Check for application updates',
       '/editor - Switch to editor',
