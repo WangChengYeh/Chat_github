@@ -873,17 +873,32 @@ export const CLI: React.FC = () => {
       const releaseData = await VersionService.getLatestRelease(repoOwner, repoName)
       const latestVersion = releaseData.tag_name || releaseData.name || 'unknown'
       const publishedAtISO = releaseData.published_at
-      const fmtUtc = (d: Date) => `${d.getUTCFullYear()}-${String(d.getUTCMonth()+1).padStart(2,'0')}-${String(d.getUTCDate()).padStart(2,'0')} ${String(d.getUTCHours()).padStart(2,'0')}:${String(d.getUTCMinutes()).padStart(2,'0')} UTC`
+      const fmtTpe = (d: Date) => {
+        const parts = new Intl.DateTimeFormat('en-CA', {
+          timeZone: 'Asia/Taipei', year: 'numeric', month: '2-digit', day: '2-digit',
+          hour: '2-digit', minute: '2-digit', hour12: false
+        }).formatToParts(d)
+        const get = (t: string) => parts.find(p => p.type === t)?.value || '00'
+        return `${get('year')}-${get('month')}-${get('day')} ${get('hour')}:${get('minute')} Taipei`
+      }
       const minutesAgo = (ms: number) => Math.max(0, Math.floor(ms / 60000))
 
       // Current build time → minutes ago
       let currentBuildLine = `📦 Current version: ${currentVersion}`
       try {
-        // Expect format: YYYY-MM-DD HH:MM UTC
-        const m = currentVersion.match(/^(\d{4}-\d{2}-\d{2}) (\d{2}:\d{2}) UTC$/)
-        if (m) {
-          const iso = `${m[1]}T${m[2]}:00Z`
-          const dt = new Date(iso)
+        // Accept formats: "YYYY-MM-DD HH:MM Taipei" or "... UTC"
+        let dt: Date | null = null
+        const mTpe = currentVersion.match(/^(\d{4}-\d{2}-\d{2}) (\d{2}:\d{2}) Taipei$/)
+        if (mTpe) {
+          const iso = `${mTpe[1]}T${mTpe[2]}:00+08:00`
+          dt = new Date(iso)
+        }
+        const mUtc = !dt && currentVersion.match(/^(\d{4}-\d{2}-\d{2}) (\d{2}:\d{2}) UTC$/)
+        if (!dt && mUtc) {
+          const iso = `${(mUtc as RegExpMatchArray)[1]}T${(mUtc as RegExpMatchArray)[2]}:00Z`
+          dt = new Date(iso)
+        }
+        if (dt) {
           const mins = minutesAgo(Date.now() - dt.getTime())
           currentBuildLine += `  (built ${mins} min ago)`
         }
@@ -895,7 +910,7 @@ export const CLI: React.FC = () => {
         if (publishedAtISO) {
           const d = new Date(publishedAtISO)
           const mins = minutesAgo(Date.now() - d.getTime())
-          latestLineSuffix = ` (${fmtUtc(d)} · ${mins} min ago)`
+          latestLineSuffix = ` (${fmtTpe(d)} · ${mins} min ago)`
         }
       } catch {}
       const isDevelopment = (releaseData as any).isDevelopment || false
