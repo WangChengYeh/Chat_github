@@ -49,9 +49,19 @@ test.describe('Mobile PWA Features', () => {
     const history = page.locator('.cli-history');
     await expect(history).toBeVisible();
     
-    // Test touch scroll (simulate)
-    await history.hover();
-    await page.mouse.wheel(0, 100);
+    // Test touch scroll (simulate with touch events for WebKit compatibility)
+    const browserName = page.context().browser()?.browserType().name();
+    if (browserName === 'webkit') {
+      // Use touch events for WebKit/Safari
+      const historyElement = await history.boundingBox();
+      if (historyElement) {
+        await page.touchscreen.tap(historyElement.x + historyElement.width/2, historyElement.y + historyElement.height/2);
+      }
+    } else {
+      // Use mouse wheel for other browsers
+      await history.hover();
+      await page.mouse.wheel(0, 100);
+    }
   });
 
   test('should handle mobile editor mode', async ({ page }) => {
