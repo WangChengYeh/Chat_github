@@ -1,3 +1,16 @@
+export class AIImageError extends Error {
+  status: number
+  statusText: string
+  body: string
+  constructor(message: string, status: number, statusText: string, body: string) {
+    super(message)
+    this.name = 'AIImageError'
+    this.status = status
+    this.statusText = statusText
+    this.body = body
+  }
+}
+
 export class AIService {
   private apiKey: string
   private model: string
@@ -94,13 +107,17 @@ Note: If working with Chinese text, preserve proper character encoding and forma
       const text = await response.text()
       if (!response.ok) {
         // Try to extract error details from JSON if present
+        let msg = text
         try {
           const err = JSON.parse(text)
-          const msg = err?.error?.message || err?.message || text
-          throw new Error(`OpenAI Image API error: ${response.status} ${response.statusText} - ${msg}`)
-        } catch {
-          throw new Error(`OpenAI Image API error: ${response.status} ${response.statusText} - ${text}`)
-        }
+          msg = err?.error?.message || err?.message || text
+        } catch {}
+        throw new AIImageError(
+          `OpenAI Image API error: ${response.status} ${response.statusText} - ${msg}`,
+          response.status,
+          response.statusText,
+          text
+        )
       }
       const data = JSON.parse(text)
       const b64 = data?.data?.[0]?.b64_json

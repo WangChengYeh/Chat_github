@@ -267,7 +267,14 @@ export const CLI: React.FC = () => {
         addHistory('ℹ️ Open a Markdown file to insert image reference automatically.')
       }
     } catch (e) {
-      addHistory(`❌ Image generation failed: ${e instanceof Error ? e.message : String(e)}`)
+      const msg = e instanceof Error ? e.message : String(e)
+      addHistory(`❌ Image generation failed: ${msg}`)
+      const details = (e as any)?.body || (e as any)?.details
+      if (details) {
+        const snippet = String(details).slice(0, 1000)
+        addHistory('— OpenAI error details (truncated) —')
+        addHistory(snippet)
+      }
       addHistory('💡 Tips:')
       addHistory('- Ensure OpenAI key is valid and has access to gpt-image-1')
       addHistory('- Try a different prompt (may violate content policy)')
