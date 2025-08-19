@@ -5,6 +5,7 @@ import { markdown } from '@codemirror/lang-markdown'
 import { json } from '@codemirror/lang-json'
 import { oneDark } from '@codemirror/theme-one-dark'
 import { EditorView } from '@codemirror/view'
+import { imagePreview } from '../codemirror/imagePreview'
 import { useStore } from '../store'
 import { DiffService } from '../services/diff'
 
@@ -149,7 +150,14 @@ export const Editor: React.FC = () => {
         <CodeMirror
           value={getDisplayContent()}
           onChange={handleContentChange}
-          extensions={getLanguageExtension(config.path)}
+          extensions={(function() {
+            const base = getLanguageExtension(config.path)
+            const isMarkdown = /\.(md|markdown)$/i.test(config.path || '')
+            if (isMarkdown && diffMode !== 'diff') {
+              return [...base, imagePreview()]
+            }
+            return base
+          })()}
           theme={theme === 'dark' ? oneDark : undefined}
           editable={diffMode === 'modified'}
           basicSetup={{
