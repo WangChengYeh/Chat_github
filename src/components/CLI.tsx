@@ -765,11 +765,9 @@ export const CLI: React.FC = () => {
   }
 
   const handleCompileC = async (arg: string) => {
-    // Compile a C source file to WebAssembly on the connected WebSocket server
-    // Usage: /cc [--wasmer] [path/to/file.c]  (defaults to current config.path)
-    const useWasmer = /--wasmer\b/.test(arg)
-    const cleaned = arg.replace(/--wasmer\b/, '').trim()
-    const cPath = cleaned ? cleaned : (config.path || '')
+    // Compile a C source file to WebAssembly in-browser via Wasmer SDK
+    // Usage: /cc [path/to/file.c]  (defaults to current config.path)
+    const cPath = (arg && arg.trim()) ? arg.trim() : (config.path || '')
     if (!cPath) {
       addHistory('Usage: /cc <path/to/file.c> (or open a .c file and run /cc)')
       return
@@ -778,11 +776,7 @@ export const CLI: React.FC = () => {
       addHistory(`❌ Not a C source file: ${cPath}`)
       return
     }
-    if (!useWasmer && (!wsService || !wsService.isConnected())) {
-      addHistory('❌ Not connected to WebSocket server. Use /socket connect <ws://host:port> first, or run /cc --wasmer to compile in-browser (experimental).')
-      addHistory('Tip: /socket server 8080  — prints a server template. Install emscripten (emcc) on the server.')
-      return
-    }
+    // Always use in-browser Wasmer compile; no server needed
 
     // Obtain source content
     let source = ''
@@ -805,79 +799,32 @@ export const CLI: React.FC = () => {
       return
     }
 
-    // If using Wasmer SDK, compile in-browser
-    if (useWasmer) {
-      addHistory('🧪 Using Wasmer SDK (llvm/clang package) to compile in browser...')
-      try {
-        const { compileCWithWasmer } = await import('../services/wasmer')
-        const res = await compileCWithWasmer(source, cPath.split('/').pop() || 'program.c')
-        if (res.stdout?.trim()) addHistory(res.stdout.trim())
-        if (res.stderr?.trim()) addHistory(res.stderr.trim())
-
-        // Download the resulting wasm
-        const outName = (cPath.split('/').pop() || 'program.c').replace(/\.c$/i, '.wasm')
-        const blob = new Blob([res.wasm], { type: 'application/wasm' })
-        const url = URL.createObjectURL(blob)
-        const a = document.createElement('a')
-        a.href = url
-        a.download = outName
-        a.style.display = 'none'
-        document.body.appendChild(a)
-        a.click()
-        setTimeout(() => { document.body.removeChild(a); URL.revokeObjectURL(url) }, 100)
-        addHistory(`✅ Downloaded ${outName} (in-browser compile)`) 
-      } catch (e) {
-        addHistory(`❌ Wasmer compile failed: ${e instanceof Error ? e.message : String(e)}`)
-        addHistory('Note: This feature requires network access to fetch the llvm/clang package from Wasmer registry.')
-      }
-      return
-    }
-
-    // Upload to server workspace
-    const base = cPath.split('/').pop() || 'program.c'
-    const wasmName = base.replace(/\.c$/i, '.wasm')
+    // Compile in browser using Wasmer SDK
+    addHistory('🧪 Using Wasmer SDK (LLVM/Clang latest) to compile in browser...')
     try {
-      wsService.sendFileUpload(base, source, false)
-      addHistory(`📤 Uploaded ${base} to server workspace`)
+      const { compileCWithWasmer } = await import('../services/wasmer')
+      const res = await compileCWithWasmer(source, cPath.split('/').pop() || 'program.c')
+      if (res.stdout?.trim()) addHistory(res.stdout.trim())
+      if (res.stderr?.trim()) addHistory(res.stderr.trim())
+
+      const outName = (cPath.split('/').pop() || 'program.c').replace(/\.c$/i, '.wasm')
+      const blob = new Blob([res.wasm], { type: 'application/wasm' })
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = outName
+      a.style.display = 'none'
+      document.body.appendChild(a)
+      a.click()
+      setTimeout(() => { document.body.removeChild(a); URL.revokeObjectURL(url) }, 100)
+      addHistory(`✅ Downloaded ${outName} (in-browser compile)`) 
     } catch (e) {
-      addHistory(`❌ Upload failed: ${e instanceof Error ? e.message : String(e)}`)
-      return
+      addHistory(`❌ Wasmer compile failed: ${e instanceof Error ? e.message : String(e)}`)
+      addHistory('Note: This feature requires network access to fetch the LLVM/Clang package from Wasmer registry.')
     }
+    return
 
-    // Compile command (emscripten only)
-    const compileCmd = [
-      'bash -lc',
-      `"set -e; cd websocket_files; ` +
-      `if command -v emcc >/dev/null 2>&1; then ` +
-      // Standalone wasm (no JS glue), optimize O3, export main by default
-      `emcc '${base}' -O3 -s WASM=1 -s STANDALONE_WASM=1 -s EXPORTED_FUNCTIONS=\"['_main']\" -o '${wasmName}'; ` +
-      `else echo 'Emscripten (emcc) not found on server. Install emsdk and activate it.' >&2; exit 127; fi"`
-    ].join(' ')
-
-    try {
-      addHistory('🛠️ Compiling to WebAssembly on server using emscripten...')
-      wsService.sendCommand(compileCmd)
-      addHistory(`🔎 Watching build logs...`)
-    } catch (e) {
-      addHistory(`❌ Failed to start compile: ${e instanceof Error ? e.message : String(e)}`)
-      return
-    }
-
-    // Try to download the artifact a few times (up to ~8 seconds)
-    let attempts = 0
-    const tryDownload = () => {
-      attempts++
-      try {
-        wsService.requestFileDownload(wasmName)
-        addHistory(`⬇️ Requesting ${wasmName} (attempt ${attempts})`)
-      } catch (e) {
-        // ignore
-      }
-      if (attempts < 8) {
-        setTimeout(tryDownload, 1000)
-      }
-    }
-    setTimeout(tryDownload, 2000)
+    // (server compile path removed)
   }
 
   const applyAIChanges = () => {
@@ -1116,7 +1063,7 @@ export const CLI: React.FC = () => {
       '/config - Open configuration',
       '/save - Save current file to local Downloads',
       '/tokens - Estimate token usage',
-      '/cc [--wasmer] [file.c] - Compile C→WebAssembly (server emscripten or in-browser via Wasmer)',
+      '/cc [file.c] - Compile C→WebAssembly in browser (Wasmer SDK, LLVM/Clang latest)',
       '/img <prompt> - Generate image via AI and upload',
       '/update - Check for application updates',
       '/editor - Switch to editor',
