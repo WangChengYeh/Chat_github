@@ -872,12 +872,36 @@ export const CLI: React.FC = () => {
       
       const releaseData = await VersionService.getLatestRelease(repoOwner, repoName)
       const latestVersion = releaseData.tag_name || releaseData.name || 'unknown'
-      const publishedAt = new Date(releaseData.published_at).toLocaleDateString()
+      const publishedAtISO = releaseData.published_at
+      const fmtUtc = (d: Date) => `${d.getUTCFullYear()}-${String(d.getUTCMonth()+1).padStart(2,'0')}-${String(d.getUTCDate()).padStart(2,'0')} ${String(d.getUTCHours()).padStart(2,'0')}:${String(d.getUTCMinutes()).padStart(2,'0')} UTC`
+      const minutesAgo = (ms: number) => Math.max(0, Math.floor(ms / 60000))
+
+      // Current build time → minutes ago
+      let currentBuildLine = `📦 Current version: ${currentVersion}`
+      try {
+        // Expect format: YYYY-MM-DD HH:MM UTC
+        const m = currentVersion.match(/^(\d{4}-\d{2}-\d{2}) (\d{2}:\d{2}) UTC$/)
+        if (m) {
+          const iso = `${m[1]}T${m[2]}:00Z`
+          const dt = new Date(iso)
+          const mins = minutesAgo(Date.now() - dt.getTime())
+          currentBuildLine += `  (built ${mins} min ago)`
+        }
+      } catch {}
+
+      // Latest published time → minutes ago (release or repo updated_at)
+      let latestLineSuffix = ''
+      try {
+        if (publishedAtISO) {
+          const d = new Date(publishedAtISO)
+          const mins = minutesAgo(Date.now() - d.getTime())
+          latestLineSuffix = ` (${fmtUtc(d)} · ${mins} min ago)`
+        }
+      } catch {}
       const isDevelopment = (releaseData as any).isDevelopment || false
       
-      addHistory(`📦 Current version: ${currentVersion}`)
-      addHistory(`🚀 Latest ${isDevelopment ? 'development' : 'release'}: ${latestVersion}`)
-      addHistory(`📅 Updated: ${publishedAt}`)
+      addHistory(currentBuildLine)
+      addHistory(`🚀 Latest ${isDevelopment ? 'development' : 'release'}: ${latestVersion}${latestLineSuffix}`)
       
       if (isDevelopment) {
         addHistory('💡 No formal releases found - showing development version')
