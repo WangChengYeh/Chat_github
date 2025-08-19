@@ -14,7 +14,7 @@ function readFileAsDataURL(file: File): Promise<string> {
   })
 }
 
-async function insertImages(view: EditorView, files: File[], pos?: number) {
+async function insertImages(view: EditorView, files: File[], pos?: number, onResolve?: (files: File[], dataUrls: string[]) => Promise<string[] | void>) {
   const images = files.filter(isImage)
   if (!images.length) return false
 
@@ -22,10 +22,12 @@ async function insertImages(view: EditorView, files: File[], pos?: number) {
   const subset = images.slice(0, 3)
 
   const parts: string[] = []
+  const dataUrls: string[] = []
   for (const file of subset) {
     try {
       const url = await readFileAsDataURL(file)
       const alt = file.name.replace(/\[(.*?)\]|\(|\)/g, '_')
+      dataUrls.push(url)
       parts.push(`![${alt}](${url})`)
     } catch (e) {
       // skip errored files
@@ -34,30 +36,56 @@ async function insertImages(view: EditorView, files: File[], pos?: number) {
   if (!parts.length) return false
 
   const text = (pos != null ? '' : '\n') + parts.join('\n') + '\n'
+  let from: number, to: number
   if (pos == null) {
-    // Insert at current selection head
     const head = view.state.selection.main.head
-    view.dispatch({
-      changes: { from: head, to: head, insert: text },
-      selection: EditorSelection.cursor(head + text.length)
-    })
+    from = head
+    to = head
   } else {
-    view.dispatch({
-      changes: { from: pos, to: pos, insert: text },
-      selection: EditorSelection.cursor(pos + text.length)
-    })
+    from = pos
+    to = pos
+  }
+  view.dispatch({
+    changes: { from, to, insert: text },
+    selection: EditorSelection.cursor(from + text.length)
+  })
+
+  // Attempt async resolution to final URLs (e.g., uploaded to repo)
+  if (onResolve && dataUrls.length) {
+    try {
+      const finals = await onResolve(subset, dataUrls)
+      if (finals && finals.length) {
+        const searchFrom = from
+        const searchTo = from + text.length
+        const slice = view.state.doc.sliceString(searchFrom, searchTo)
+        let replaced = slice
+        dataUrls.forEach((d, i) => {
+          const f = finals[i]
+          if (f && f !== d) {
+            replaced = replaced.replace(d, f)
+          }
+        })
+        if (replaced !== slice) {
+          view.dispatch({
+            changes: { from: searchFrom, to: searchTo, insert: replaced }
+          })
+        }
+      }
+    } catch {
+      // silently ignore upload failures; data URLs remain
+    }
   }
   return true
 }
 
-export function imagePasteDrop() {
+export function imagePasteDrop(options?: { onResolveUrls?: (files: File[], dataUrls: string[]) => Promise<string[] | void> }) {
   return EditorView.domEventHandlers({
     paste: (event, view) => {
       if (!event.clipboardData) return false
       const files = Array.from(event.clipboardData.files || [])
       if (!files.some(isImage)) return false
       event.preventDefault()
-      insertImages(view, files)
+      insertImages(view, files, undefined, options?.onResolveUrls)
       return true
     },
     drop: (event, view) => {
@@ -66,9 +94,8 @@ export function imagePasteDrop() {
       if (!files.some(isImage)) return false
       event.preventDefault()
       const pos = view.posAtCoords({ x: event.clientX, y: event.clientY }) ?? view.state.selection.main.head
-      insertImages(view, files, pos)
+      insertImages(view, files, pos, options?.onResolveUrls)
       return true
     }
   })
 }
-
