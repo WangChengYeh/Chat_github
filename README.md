@@ -345,9 +345,7 @@ cat dist/manifest.webmanifest  # Should show /Chat_github/ paths
 
 ##### **Step 3: Deploy and Test**
 ```bash
-# Push to main branch (GitHub Pages auto-deploys)
-git add dist/
-git commit -m "deploy: update PWA build"
+# Push to main branch — GitHub Actions will build and deploy dist/ to Pages
 git push origin main
 
 # Test PWA features:
