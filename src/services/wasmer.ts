@@ -28,9 +28,9 @@ export async function compileCWithWasmer(source: string, filename = 'program.c')
   sdk = await dynImport('@wasmer/sdk')
   // Fallback to ESM CDNs in browser
   if (!sdk && typeof window !== 'undefined') {
-    sdk = await dynImport('https://esm.sh/@wasmer/sdk')
+    sdk = await dynImport('https://esm.sh/@wasmer/sdk@1.1.1')
       || await dynImport('https://cdn.skypack.dev/@wasmer/sdk')
-      || await dynImport('https://esm.run/@wasmer/sdk')
+      || await dynImport('https://esm.run/@wasmer/sdk@1.1.1')
   }
   if (!sdk) {
     throw new Error('Wasmer SDK not available. Check network access; falling back failed.')
@@ -46,10 +46,11 @@ export async function compileCWithWasmer(source: string, filename = 'program.c')
   }
 
   // Create a virtual filesystem and write source
-  if (typeof api.createFs !== 'function') {
-    throw new Error('Wasmer SDK missing createFs()')
+  const createFsCandidate = (api.createFs || api.createFS || api.FS?.create || api.fs?.create)
+  if (typeof createFsCandidate !== 'function') {
+    throw new Error('Wasmer SDK missing createFs(); try a compatible SDK version (e.g., esm.sh/@wasmer/sdk@1.1.1)')
   }
-  const fs = await api.createFs()
+  const fs = await createFsCandidate.call(api)
   await fs.writeFile(`/work/${filename}`, new TextEncoder().encode(source))
 
   // Choose a clang package (adjust version as available)
