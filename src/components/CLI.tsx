@@ -814,19 +814,18 @@ export const CLI: React.FC = () => {
       return
     }
 
-    // Compile command (prefer clang wasm32-wasi, fallback to emcc)
+    // Compile command (emscripten only)
     const compileCmd = [
       'bash -lc',
       `"set -e; cd websocket_files; ` +
-      `if command -v clang >/dev/null 2>&1; then ` +
-      `clang --target=wasm32-wasi -O3 -Wl,--export-all -Wl,--no-entry -o '${wasmName}' '${base}'; ` +
-      `elif command -v emcc >/dev/null 2>&1; then ` +
+      `if command -v emcc >/dev/null 2>&1; then ` +
+      // Standalone wasm (no JS glue), optimize O3, export main by default
       `emcc '${base}' -O3 -s WASM=1 -s STANDALONE_WASM=1 -s EXPORTED_FUNCTIONS=\"['_main']\" -o '${wasmName}'; ` +
-      `else echo 'No clang or emcc found on server' >&2; exit 127; fi"`
+      `else echo 'Emscripten (emcc) not found on server. Install emsdk and activate it.' >&2; exit 127; fi"`
     ].join(' ')
 
     try {
-      addHistory('🛠️ Compiling to WebAssembly on server...')
+      addHistory('🛠️ Compiling to WebAssembly on server using emscripten...')
       wsService.sendCommand(compileCmd)
       addHistory(`🔎 Watching build logs...`)
     } catch (e) {
@@ -1087,7 +1086,7 @@ export const CLI: React.FC = () => {
       '/config - Open configuration',
       '/save - Save current file to local Downloads',
       '/tokens - Estimate token usage',
-      '/cc [file.c] - Compile C to WebAssembly on WebSocket server',
+      '/cc [file.c] - Compile C→WebAssembly on server (emscripten)',
       '/img <prompt> - Generate image via AI and upload',
       '/update - Check for application updates',
       '/editor - Switch to editor',
