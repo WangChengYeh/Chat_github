@@ -300,7 +300,8 @@ test.describe('Editor Mode', () => {
     expect(scrollTest.canAttemptScroll).toBe(true);
   });
 
-  test('should handle Safari-specific editor scrolling', async ({ page }) => {
+  // Disabled legacy Safari-specific scrolling test in favor of dedicated desktop Safari test
+  test.skip('should handle Safari-specific editor scrolling', async ({ page }) => {
     // This test specifically targets Safari scrolling behavior
     const browserName = page.context().browser()?.browserType().name();
     
