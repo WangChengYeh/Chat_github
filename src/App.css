@@ -607,6 +607,21 @@ body {
   background: #2ea043;
 }
 
+/* CodeMirror image preview widgets */
+.cm-image-preview {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 8px 0;
+}
+.cm-image-preview img {
+  max-width: 100%;
+  height: auto;
+  border: 1px solid #30363d;
+  border-radius: 6px;
+  background: #0d1117;
+}
+
 /* Mobile-specific styles */
 @media (max-width: 768px) {
   .cli-history {
