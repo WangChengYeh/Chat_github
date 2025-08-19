@@ -4,14 +4,32 @@ import { VitePWA } from 'vite-plugin-pwa'
 
 export default defineConfig({
   define: (() => {
-    const d = new Date()
-    const yyyy = d.getUTCFullYear()
-    const mm = String(d.getUTCMonth() + 1).padStart(2, '0')
-    const dd = String(d.getUTCDate()).padStart(2, '0')
-    const hh = String(d.getUTCHours()).padStart(2, '0')
-    const mi = String(d.getUTCMinutes()).padStart(2, '0')
-    const friendly = `${yyyy}-${mm}-${dd} ${hh}:${mi} UTC`
-    return { __BUILD_TIME__: JSON.stringify(friendly) }
+    // Build timestamp in Asia/Taipei (UTC+8), minute precision
+    try {
+      const parts = new Intl.DateTimeFormat('en-CA', {
+        timeZone: 'Asia/Taipei',
+        year: 'numeric', month: '2-digit', day: '2-digit',
+        hour: '2-digit', minute: '2-digit', hour12: false,
+      }).formatToParts(new Date())
+      const get = (type: string) => parts.find(p => p.type === type)?.value || '00'
+      const yyyy = get('year')
+      const mm = get('month')
+      const dd = get('day')
+      const hh = get('hour')
+      const mi = get('minute')
+      const friendly = `${yyyy}-${mm}-${dd} ${hh}:${mi} Taipei`
+      return { __BUILD_TIME__: JSON.stringify(friendly) }
+    } catch {
+      // Fallback to UTC if Intl is unavailable
+      const d = new Date()
+      const yyyy = d.getUTCFullYear()
+      const mm = String(d.getUTCMonth() + 1).padStart(2, '0')
+      const dd = String(d.getUTCDate()).padStart(2, '0')
+      const hh = String(d.getUTCHours()).padStart(2, '0')
+      const mi = String(d.getUTCMinutes()).padStart(2, '0')
+      const friendly = `${yyyy}-${mm}-${dd} ${hh}:${mi} Taipei`
+      return { __BUILD_TIME__: JSON.stringify(friendly) }
+    }
   })(),
   plugins: [
     react(),
