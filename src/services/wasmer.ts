@@ -15,13 +15,25 @@ export async function compileCWithWasmer(source: string, filename = 'program.c')
   }
   // Lazy-load the SDK to avoid increasing initial bundle size
   // Avoid bundler resolution by computing module specifier at runtime
-  const mod = '@wasmer' + '/sdk'
-  let sdk: any
-  try {
-    // eslint-disable-next-line @typescript-eslint/no-implied-eval
-    sdk = await (new Function('m', 'return import(m)'))(mod)
-  } catch (e) {
-    throw new Error('Wasmer SDK not available. Please ensure @wasmer/sdk is installed and network access is allowed to fetch packages.')
+  async function dynImport(spec: string) {
+    try {
+      // eslint-disable-next-line @typescript-eslint/no-implied-eval
+      return await (new Function('m', 'return import(m)'))(spec)
+    } catch {
+      return null
+    }
+  }
+  let sdk: any = null
+  // Try local module resolution first (if installed)
+  sdk = await dynImport('@wasmer/sdk')
+  // Fallback to ESM CDNs in browser
+  if (!sdk && typeof window !== 'undefined') {
+    sdk = await dynImport('https://esm.sh/@wasmer/sdk')
+      || await dynImport('https://cdn.skypack.dev/@wasmer/sdk')
+      || await dynImport('https://esm.run/@wasmer/sdk')
+  }
+  if (!sdk) {
+    throw new Error('Wasmer SDK not available. Check network access; falling back failed.')
   }
   const { Wasmer } = sdk
   // Initialize SDK (uses default registry https://registry.wasmer.io)
