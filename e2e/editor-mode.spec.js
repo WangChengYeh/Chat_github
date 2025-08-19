@@ -300,6 +300,157 @@ test.describe('Editor Mode', () => {
     expect(scrollTest.canAttemptScroll).toBe(true);
   });
 
+  test('should handle Safari-specific editor scrolling', async ({ page }) => {
+    // This test specifically targets Safari scrolling behavior
+    const browserName = page.context().browser()?.browserType().name();
+    
+    await helpers.executeCommand('/open test.txt');
+    await helpers.switchToEditor();
+    
+    // Wait for editor to be ready
+    await expect(page.locator('.cm-editor')).toBeVisible();
+    await page.waitForTimeout(1000);
+    
+    // Add substantial content to ensure scrolling is needed
+    await page.click('.cm-editor');
+    await page.evaluate(() => {
+      const cmContent = document.querySelector('.cm-content');
+      if (cmContent) {
+        const scrollableContent = Array(30).fill('Safari scrolling test line with substantial content to ensure overflow and scrolling behavior can be properly tested.').join('\n');
+        cmContent.textContent = scrollableContent;
+        
+        // Trigger content update
+        const event = new Event('input', { bubbles: true });
+        cmContent.dispatchEvent(event);
+      }
+    });
+    
+    await page.waitForTimeout(500);
+    
+    // Force constrained height to ensure scrolling is required
+    await page.evaluate(() => {
+      const editorContent = document.querySelector('.editor-content');
+      const cmScroller = document.querySelector('.cm-scroller');
+      if (editorContent && cmScroller) {
+        editorContent.style.height = '300px';
+        editorContent.style.maxHeight = '300px';
+        cmScroller.style.height = '280px';
+        cmScroller.style.maxHeight = '280px';
+      }
+    });
+    
+    await page.waitForTimeout(500);
+    
+    const cmScroller = page.locator('.cm-scroller');
+    await expect(cmScroller).toBeVisible();
+    
+    // Get initial scroll state
+    const initialScrollInfo = await cmScroller.evaluate(el => ({
+      scrollTop: el.scrollTop,
+      scrollHeight: el.scrollHeight,
+      clientHeight: el.clientHeight,
+      canScroll: el.scrollHeight > el.clientHeight,
+      computedOverflowY: window.getComputedStyle(el).overflowY
+    }));
+    
+    console.log(`Safari Editor Scroll Test - Browser: ${browserName}`);
+    console.log('Initial scroll info:', initialScrollInfo);
+    
+    // Debug CSS properties that might affect scrolling
+    const cssDebug = await page.evaluate(() => {
+      const editorContent = document.querySelector('.editor-content');
+      const cmScroller = document.querySelector('.cm-scroller');
+      const cmEditor = document.querySelector('.cm-editor');
+      
+      const debugInfo = {};
+      
+      if (editorContent) {
+        const style = window.getComputedStyle(editorContent);
+        debugInfo.editorContent = {
+          overflow: style.overflow,
+          overflowY: style.overflowY,
+          height: style.height,
+          maxHeight: style.maxHeight,
+          position: style.position
+        };
+      }
+      
+      if (cmScroller) {
+        const style = window.getComputedStyle(cmScroller);
+        debugInfo.cmScroller = {
+          overflow: style.overflow,
+          overflowY: style.overflowY,
+          height: style.height,
+          maxHeight: style.maxHeight,
+          position: style.position,
+          webkitOverflowScrolling: style.webkitOverflowScrolling
+        };
+      }
+      
+      if (cmEditor) {
+        const style = window.getComputedStyle(cmEditor);
+        debugInfo.cmEditor = {
+          overflow: style.overflow,
+          overflowY: style.overflowY,
+          height: style.height,
+          maxHeight: style.maxHeight,
+          position: style.position
+        };
+      }
+      
+      return debugInfo;
+    });
+    
+    console.log('CSS Debug Info:', JSON.stringify(cssDebug, null, 2));
+    
+    // Verify scrolling is possible
+    expect(initialScrollInfo.canScroll).toBe(true);
+    expect(initialScrollInfo.computedOverflowY).toBe('auto');
+    
+    // Test Safari-specific scrolling interaction
+    if (browserName === 'webkit') {
+      // Safari/WebKit specific touch-based scrolling
+      const scrollerBox = await cmScroller.boundingBox();
+      if (scrollerBox) {
+        // Simulate touch scroll gesture on Safari
+        const startY = scrollerBox.y + scrollerBox.height / 2;
+        const endY = startY - 100; // Scroll up
+        
+        await page.touchscreen.tap(scrollerBox.x + scrollerBox.width / 2, startY);
+        await page.waitForTimeout(100);
+        
+        // Try programmatic scrolling which should work on Safari
+        const scrollResult = await cmScroller.evaluate(el => {
+          const initialTop = el.scrollTop;
+          el.scrollTop = 150; // Scroll down significantly
+          const newTop = el.scrollTop;
+          
+          return {
+            initialTop,
+            newTop,
+            scrolled: newTop > initialTop,
+            scrollDifference: newTop - initialTop
+          };
+        });
+        
+        console.log('Safari scroll result:', scrollResult);
+        expect(scrollResult.scrolled).toBe(true);
+        expect(scrollResult.scrollDifference).toBeGreaterThan(0);
+      }
+    } else {
+      // Non-Safari browsers - use mouse wheel
+      await cmScroller.hover();
+      await page.mouse.wheel(0, 200);
+      
+      const scrollAfterWheel = await cmScroller.evaluate(el => el.scrollTop);
+      expect(scrollAfterWheel).toBeGreaterThan(initialScrollInfo.scrollTop);
+    }
+    
+    // Verify scrolling actually works by checking scroll position changed
+    const finalScrollTop = await cmScroller.evaluate(el => el.scrollTop);
+    expect(finalScrollTop).toBeGreaterThan(initialScrollInfo.scrollTop);
+  });
+
   test('should handle editor scrolling on mobile viewport', async ({ page }) => {
     // Set mobile viewport to test mobile scrolling
     await page.setViewportSize({ width: 375, height: 667 }); // iPhone SE size
