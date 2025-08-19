@@ -35,12 +35,21 @@ export async function compileCWithWasmer(source: string, filename = 'program.c')
   if (!sdk) {
     throw new Error('Wasmer SDK not available. Check network access; falling back failed.')
   }
-  const { Wasmer } = sdk
-  // Initialize SDK (uses default registry https://registry.wasmer.io)
-  await Wasmer.init()
+  // Resolve Wasmer API shape across different module formats/CDNs
+  const api: any = (sdk && (sdk.Wasmer || sdk.default?.Wasmer || sdk.default || sdk))
+  if (!api) {
+    throw new Error('Wasmer SDK loaded but no usable API was found')
+  }
+  // Initialize SDK (uses default registry https://registry.wasmer.io) if init() exists
+  if (typeof api.init === 'function') {
+    await api.init()
+  }
 
   // Create a virtual filesystem and write source
-  const fs = await Wasmer.createFs()
+  if (typeof api.createFs !== 'function') {
+    throw new Error('Wasmer SDK missing createFs()')
+  }
+  const fs = await api.createFs()
   await fs.writeFile(`/work/${filename}`, new TextEncoder().encode(source))
 
   // Choose a clang package (adjust version as available)
@@ -55,7 +64,10 @@ export async function compileCWithWasmer(source: string, filename = 'program.c')
     `-o`, `/work/${outName}`, `/work/${filename}`
   ]
 
-  const result = await Wasmer.runPackage(clangPkg, {
+  if (typeof api.runPackage !== 'function') {
+    throw new Error('Wasmer SDK missing runPackage()')
+  }
+  const result = await api.runPackage(clangPkg, {
     args,
     mount: { '/work': fs },
     env: {}
