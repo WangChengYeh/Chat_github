@@ -7,6 +7,7 @@
     <meta name="theme-color" content="#000000" />
     <meta name="description" content="Mobile-First AI CLI & Text Editor for GitHub with Chinese support" />
     <meta name="keywords" content="PWA, GitHub, AI, Chinese, 中文, 編輯器, 手機" />
+    <link rel="canonical" href="https://wangchengyeh.github.io/Chat_github/" />
     
     <!-- PWA Manifest -->
     <link rel="manifest" href="/Chat_github/manifest.webmanifest" />
@@ -22,6 +23,19 @@
     <!-- iOS Splash Screens -->
     <meta name="apple-mobile-web-app-status-bar-style" content="default" />
     <title>Phone AI + GitHub - 手機端 AI 程式編輯器</title>
+    <script>
+      // Ensure GitHub Pages path has trailing slash for iOS A2HS stability
+      (function () {
+        try {
+          var desired = '/Chat_github/';
+          if (location.hostname.endsWith('github.io')) {
+            if (location.pathname === '/Chat_github') {
+              location.replace(desired + location.search + location.hash);
+            }
+          }
+        } catch (e) { /* noop */ }
+      })();
+    </script>
     <script type="module" crossorigin src="/Chat_github/assets/index-CYW_w2KD.js"></script>
     <link rel="stylesheet" crossorigin href="/Chat_github/assets/index-Dd1jAu9L.css">
   <link rel="manifest" href="/Chat_github/manifest.webmanifest"><script id="vite-plugin-pwa:register-sw" src="/Chat_github/registerSW.js"></script></head>
