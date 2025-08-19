@@ -3,6 +3,16 @@ import react from '@vitejs/plugin-react-swc'
 import { VitePWA } from 'vite-plugin-pwa'
 
 export default defineConfig({
+  define: (() => {
+    const d = new Date()
+    const yyyy = d.getUTCFullYear()
+    const mm = String(d.getUTCMonth() + 1).padStart(2, '0')
+    const dd = String(d.getUTCDate()).padStart(2, '0')
+    const hh = String(d.getUTCHours()).padStart(2, '0')
+    const mi = String(d.getUTCMinutes()).padStart(2, '0')
+    const friendly = `${yyyy}-${mm}-${dd} ${hh}:${mi} UTC`
+    return { __BUILD_TIME__: JSON.stringify(friendly) }
+  })(),
   plugins: [
     react(),
     VitePWA({

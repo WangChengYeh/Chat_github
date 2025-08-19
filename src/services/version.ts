@@ -2,7 +2,16 @@ export class VersionService {
   // In a real application, this would be injected at build time
   // For now, we'll hardcode it but make it easy to update
   static getCurrentVersion(): string {
-    return '1.0.0'
+    // Build timestamp injected by Vite define in vite.config.ts
+    // Example: 2025-08-19 22:43 UTC
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    declare const __BUILD_TIME__: string
+    try {
+      // @ts-ignore - defined at build time
+      return __BUILD_TIME__ || 'dev'
+    } catch {
+      return 'dev'
+    }
   }
   
   static async getLatestRelease(owner: string, repo: string) {
