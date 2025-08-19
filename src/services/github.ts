@@ -6,6 +6,8 @@ interface GitHubFileResponse {
 interface GitHubCommitResponse {
   content: {
     sha: string
+    path?: string
+    download_url?: string
   }
 }
 
@@ -85,6 +87,30 @@ export class GitHubService {
       return data.content.sha
     } catch (error) {
       throw new Error(`Failed to commit file: ${error}`)
+    }
+  }
+
+  async updateFileBase64(
+    path: string,
+    base64Content: string,
+    sha: string,
+    message: string,
+    branch: string = 'main'
+  ): Promise<{ sha: string; download_url?: string }> {
+    try {
+      const requestBody: any = {
+        message,
+        content: base64Content,
+        branch,
+      }
+      if (sha && sha.trim() !== '') requestBody.sha = sha
+      const data: GitHubCommitResponse = await this.request(`contents/${path}`, {
+        method: 'PUT',
+        body: JSON.stringify(requestBody),
+      })
+      return { sha: data.content.sha, download_url: (data.content as any)?.download_url }
+    } catch (error) {
+      throw new Error(`Failed to commit binary file: ${error}`)
     }
   }
 

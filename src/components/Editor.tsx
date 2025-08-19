@@ -9,6 +9,7 @@ import { imagePreview } from '../codemirror/imagePreview'
 import { imagePasteDrop } from '../codemirror/imagePasteDrop'
 import { useStore } from '../store'
 import { DiffService } from '../services/diff'
+import { GitHubService } from '../services/github'
 
 type DiffMode = 'original' | 'modified' | 'diff'
 
@@ -80,6 +81,45 @@ export const Editor: React.FC = () => {
         return DiffService.formatDiffText(file.original, file.current)
       default:
         return file.current
+    }
+  }
+
+  const uploadImagesToRepo = async (files: File[], dataUrls: string[]): Promise<string[] | void> => {
+    try {
+      const { githubToken, owner, repo, branch } = config
+      if (!githubToken || !owner || !repo) return
+      const gh = new GitHubService(githubToken, owner, repo)
+
+      const toBase64 = async (file: File) => {
+        const buf = new Uint8Array(await file.arrayBuffer())
+        // Convert bytes to base64 without inflating memory too much
+        let binary = ''
+        const chunkSize = 0x8000
+        for (let i = 0; i < buf.length; i += chunkSize) {
+          const chunk = buf.subarray(i, i + chunkSize)
+          binary += String.fromCharCode.apply(null, Array.from(chunk) as any)
+        }
+        return btoa(binary)
+      }
+
+      const timestamp = new Date().toISOString().replace(/[-:T.Z]/g, '').slice(0, 14)
+      const sanitize = (s: string) => s.replace(/[^a-zA-Z0-9._-]/g, '_')
+      const basePath = 'assets'
+
+      const urls: string[] = []
+      for (const file of files) {
+        const ext = (file.name.split('.').pop() || '').toLowerCase()
+        const name = sanitize(file.name.replace(/\s+/g, '_'))
+        const path = `${basePath}/${timestamp}-${name}`
+        const base64 = await toBase64(file)
+        await gh.updateFileBase64(path, base64, '', `chore: add image ${file.name} via paste`, branch)
+        const rawUrl = `https://raw.githubusercontent.com/${owner}/${repo}/${branch}/${path}`
+        urls.push(rawUrl)
+      }
+      return urls
+    } catch (e) {
+      console.error('Image upload failed', e)
+      return
     }
   }
 
@@ -155,7 +195,7 @@ export const Editor: React.FC = () => {
             const base = getLanguageExtension(config.path)
             const isMarkdown = /\.(md|markdown)$/i.test(config.path || '')
             if (isMarkdown && diffMode !== 'diff') {
-              return [...base, imagePreview(), imagePasteDrop()]
+              return [...base, imagePreview(), imagePasteDrop({ onResolveUrls: uploadImagesToRepo })]
             }
             return base
           })()}
