@@ -15,7 +15,8 @@
 
 html, body, #root {
   height: 100%;
-  overflow: hidden;
+  /* Avoid locking root scrolling on Safari, enable inner scrollers */
+  overflow: auto;
   /* iOS specific fixes */
   -webkit-overflow-scrolling: touch;
   -webkit-touch-callout: none;
@@ -25,6 +26,7 @@ html, body, #root {
 @supports (-webkit-touch-callout: none) {
   html, body, #root {
     height: -webkit-fill-available;
+    overflow: auto;
   }
 }
 
@@ -114,6 +116,7 @@ body {
 .app {
   height: 100vh;
   height: -webkit-fill-available; /* iOS fix */
+  min-height: 0; /* Allow children to scroll */
   display: flex;
   flex-direction: column;
   background: #000;
@@ -130,6 +133,7 @@ body {
   flex-direction: column;
   height: 100vh;
   height: -webkit-fill-available; /* iOS fix */
+  min-height: 0; /* Allow inner scrollers */
   background: #000;
   color: #fff;
   /* Ensure proper overflow handling */
@@ -205,6 +209,7 @@ body {
   flex-direction: column;
   height: 100vh;
   height: -webkit-fill-available; /* iOS fix */
+  min-height: 0; /* Allow editor to scroll */
   background: #0d1117;
 }
 
@@ -282,7 +287,10 @@ body {
 
 .editor-content {
   flex: 1;
-  overflow: hidden;
+  /* Allow inner editor to scroll on iOS/Safari */
+  overflow: auto;
+  -webkit-overflow-scrolling: touch;
+  min-height: 0;
 }
 
 .editor-codemirror {
@@ -291,7 +299,7 @@ body {
 }
 
 .editor-codemirror .cm-editor {
-  height: 100%;
+  height: 100% !important;
 }
 
 .editor-codemirror .cm-scroller {
@@ -301,8 +309,21 @@ body {
   /* iOS scrolling fixes */
   -webkit-overflow-scrolling: touch;
   overflow-y: auto;
-  height: auto;
-  max-height: 100%;
+  /* Ensure scroller fills container to enable scrolling */
+  height: 100% !important;
+  max-height: none;
+  /* Allow finger panning on Safari/iOS */
+  touch-action: pan-y;
+  overscroll-behavior-y: contain;
+}
+
+/* Modern viewport unit support */
+@supports (height: 100dvh) {
+  .app,
+  .cli-container,
+  .editor-container {
+    height: 100dvh;
+  }
 }
 
 /* Force Chinese font support for CodeMirror */

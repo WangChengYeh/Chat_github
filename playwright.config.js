@@ -57,6 +57,16 @@ export default defineConfig({
     },
 
     {
+      name: 'webkit-desktop',
+      use: {
+        ...devices['Desktop Safari'],
+        hasTouch: false,
+        isMobile: false,
+        viewport: { width: 1280, height: 800 }
+      }
+    },
+
+    {
       name: 'firefox',
       use: { ...devices['Desktop Firefox'] },
     },
