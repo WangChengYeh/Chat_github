@@ -36,6 +36,13 @@ jobs:
       - name: Build
         run: npm run build
 
+      - name: Verify build output
+        run: |
+          ls -la dist
+          test -f dist/index.html
+          test -f dist/manifest.webmanifest
+          echo "Base path should be /Chat_github/"
+
       - name: Setup Pages
         uses: actions/configure-pages@v5
 
@@ -54,4 +61,3 @@ jobs:
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v4
-
