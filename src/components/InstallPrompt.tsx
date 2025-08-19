@@ -12,13 +12,18 @@ interface BeforeInstallPromptEvent extends Event {
 export const InstallPrompt: React.FC = () => {
   const [installPrompt, setInstallPrompt] = useState<BeforeInstallPromptEvent | null>(null)
   const [isIOS, setIsIOS] = useState(false)
+  const [isMacSafari, setIsMacSafari] = useState(false)
   const [isInstalled, setIsInstalled] = useState(false)
   const [showPrompt, setShowPrompt] = useState(false)
 
   useEffect(() => {
-    // Detect iOS
-    const iOS = /iPad|iPhone|iPod/.test(navigator.userAgent)
+    // Detect iOS and macOS Safari
+    const ua = navigator.userAgent
+    const iOS = /iPad|iPhone|iPod/.test(ua)
     setIsIOS(iOS)
+    const isMac = /Macintosh/.test(ua)
+    const isSafari = /Safari\//.test(ua) && !/Chrome\//.test(ua) && !/Chromium\//.test(ua)
+    setIsMacSafari(isMac && isSafari)
 
     // Detect if app is already installed
     const isStandalone = window.matchMedia('(display-mode: standalone)').matches
@@ -34,8 +39,8 @@ export const InstallPrompt: React.FC = () => {
 
     window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt)
 
-    // Show iOS prompt after a delay if not installed
-    if (iOS && !isStandalone && !isIOSStandalone) {
+    // Show iOS/macOS Safari instructions after a delay if not installed
+    if ((iOS || (isMac && isSafari)) && !isStandalone && !isIOSStandalone) {
       const timer = setTimeout(() => setShowPrompt(true), 3000)
       return () => {
         clearTimeout(timer)
@@ -82,6 +87,10 @@ export const InstallPrompt: React.FC = () => {
             {isIOS ? (
               <p>
                 Add to your home screen: tap <strong>Share</strong> then <strong>"Add to Home Screen"</strong>
+              </p>
+            ) : isMacSafari ? (
+              <p>
+                On Safari (macOS): go to <strong>File → Add to Dock…</strong> to install the app.
               </p>
             ) : (
               <p>Install this app for a better experience</p>
