@@ -25,7 +25,6 @@
     "build": "vite build",
     "lint": "eslint . --ext js,jsx,ts,tsx --report-unused-disable-directives --max-warnings 0",
     "preview": "vite preview",
-    "deploy": "npm run build && git add dist && git commit -m 'deploy: update GitHub Pages build' && git push origin main",
     "icons": "node scripts/gen-icons.cjs",
     "upload-snippets": "node scripts/upload-snippets.js",
     "server": "node server.js",
