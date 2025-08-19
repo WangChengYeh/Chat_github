@@ -117,6 +117,10 @@ export const CLI: React.FC = () => {
       case 'download':
         await handleDownloadCommand(arg)
         break
+      case 'img':
+      case 'image':
+        await handleImageCommand(arg)
+        break
       case 'apply':
         applyAIChanges()
         break
@@ -206,6 +210,56 @@ export const CLI: React.FC = () => {
     } catch (error) {
       setAI({ pending: false })
       throw error
+    }
+  }
+
+  const handleImageCommand = async (prompt: string) => {
+    if (!prompt.trim()) {
+      addHistory('Usage: /img <prompt>')
+      return
+    }
+    if (!config.openaiKey) {
+      addHistory('OpenAI API key not configured. Use /config to set it up.')
+      return
+    }
+    if (!config.githubToken || !config.owner || !config.repo) {
+      addHistory('GitHub configuration missing. Use /config to set it up.')
+      return
+    }
+
+    try {
+      addHistory(`🎨 Generating image: ${prompt}`)
+      const aiService = new AIService(config.openaiKey)
+      const b64 = await aiService.generateImage(prompt, '1024x1024')
+      addHistory('🖼️ Image generated. Uploading to repository...')
+
+      const github = new GitHubService(config.githubToken, config.owner, config.repo)
+      const timestamp = new Date().toISOString().replace(/[-:T.Z]/g, '').slice(0, 12) // to minutes
+      const safePrompt = prompt.trim().slice(0, 40).replace(/[^a-zA-Z0-9._-]+/g, '_') || 'image'
+      const path = `assets/${timestamp}-${safePrompt}.png`
+
+      const { sha } = await github.updateFileBase64(
+        path,
+        b64,
+        '',
+        `chore: add AI image for prompt: ${prompt}`,
+        config.branch
+      )
+      const url = `https://raw.githubusercontent.com/${config.owner}/${config.repo}/${config.branch}/${path}`
+      addHistory(`✅ Uploaded: ${path} (sha ${sha.substring(0,7)})`)
+      addHistory(`🔗 ${url}`)
+
+      // If current file is markdown, append image reference and mark dirty
+      const isMarkdown = /\.(md|markdown)$/i.test(config.path || '')
+      if (isMarkdown) {
+        const md = `\n\n![${safePrompt}](${url})\n`
+        setFile({ current: file.current + md, dirty: true })
+        addHistory('✍️ Inserted image reference into current Markdown file.')
+      } else {
+        addHistory('ℹ️ Open a Markdown file to insert image reference automatically.')
+      }
+    } catch (e) {
+      addHistory(`❌ Image generation failed: ${e instanceof Error ? e.message : String(e)}`)
     }
   }
 
@@ -924,6 +978,7 @@ export const CLI: React.FC = () => {
       '/config - Open configuration',
       '/save - Save current file to local Downloads',
       '/tokens - Estimate token usage',
+      '/img <prompt> - Generate image via AI and upload',
       '/update - Check for application updates',
       '/editor - Switch to editor',
       '/tool [upload|download] - Switch to file transfer tools',

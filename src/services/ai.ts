@@ -73,4 +73,33 @@ Note: If working with Chinese text, preserve proper character encoding and forma
   async estimateTokens(text: string): Promise<number> {
     return Math.ceil(text.length / 4)
   }
+
+  async generateImage(prompt: string, size: '256x256' | '512x512' | '1024x1024' = '1024x1024'): Promise<string> {
+    if (!prompt.trim()) throw new Error('Image prompt is empty')
+    try {
+      const response = await fetch('https://api.openai.com/v1/images/generations', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${this.apiKey}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          model: 'gpt-image-1',
+          prompt,
+          size,
+          n: 1,
+          response_format: 'b64_json'
+        })
+      })
+      if (!response.ok) {
+        throw new Error(`OpenAI Image API error: ${response.status} ${response.statusText}`)
+      }
+      const data = await response.json()
+      const b64 = data?.data?.[0]?.b64_json
+      if (!b64) throw new Error('No image returned from AI')
+      return b64
+    } catch (e) {
+      throw new Error(`Failed to generate image: ${e}`)
+    }
+  }
 }
