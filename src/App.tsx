@@ -5,6 +5,7 @@ import { Editor } from './components/Editor'
 import { Tool } from './components/Tool'
 import { ConfigOverlay } from './components/ConfigOverlay'
 import { InstallPrompt } from './components/InstallPrompt'
+import { PwaDiagnostics } from './components/PwaDiagnostics'
 import './App.css'
 
 function App() {
@@ -40,6 +41,7 @@ function App() {
       {renderCurrentMode()}
       <ConfigOverlay />
       <InstallPrompt />
+      <PwaDiagnostics />
     </div>
   )
 }
