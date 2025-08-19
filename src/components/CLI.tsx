@@ -213,9 +213,17 @@ export const CLI: React.FC = () => {
     }
   }
 
-  const handleImageCommand = async (prompt: string) => {
+  const handleImageCommand = async (raw: string) => {
+    // Parse optional size flag: -s 256|512|1024
+    let size: '256x256' | '512x512' | '1024x1024' = '1024x1024'
+    let prompt = raw
+    const m = raw.match(/^-s\s*(256|512|1024)\s+([\s\S]+)/)
+    if (m) {
+      size = (m[1] + 'x' + m[1]) as any
+      prompt = m[2]
+    }
     if (!prompt.trim()) {
-      addHistory('Usage: /img <prompt>')
+      addHistory('Usage: /img [-s 256|512|1024] <prompt>')
       return
     }
     if (!config.openaiKey) {
@@ -228,9 +236,9 @@ export const CLI: React.FC = () => {
     }
 
     try {
-      addHistory(`🎨 Generating image: ${prompt}`)
+      addHistory(`🎨 Generating image: ${prompt} ${size !== '1024x1024' ? `(size ${size})` : ''}`)
       const aiService = new AIService(config.openaiKey)
-      const b64 = await aiService.generateImage(prompt, '1024x1024')
+      const b64 = await aiService.generateImage(prompt, size)
       addHistory('🖼️ Image generated. Uploading to repository...')
 
       const github = new GitHubService(config.githubToken, config.owner, config.repo)
@@ -260,6 +268,10 @@ export const CLI: React.FC = () => {
       }
     } catch (e) {
       addHistory(`❌ Image generation failed: ${e instanceof Error ? e.message : String(e)}`)
+      addHistory('💡 Tips:')
+      addHistory('- Ensure OpenAI key is valid and has access to gpt-image-1')
+      addHistory('- Try a different prompt (may violate content policy)')
+      addHistory('- If using Chrome, check DevTools → Network for response details')
     }
   }
 

@@ -91,10 +91,18 @@ Note: If working with Chinese text, preserve proper character encoding and forma
           response_format: 'b64_json'
         })
       })
+      const text = await response.text()
       if (!response.ok) {
-        throw new Error(`OpenAI Image API error: ${response.status} ${response.statusText}`)
+        // Try to extract error details from JSON if present
+        try {
+          const err = JSON.parse(text)
+          const msg = err?.error?.message || err?.message || text
+          throw new Error(`OpenAI Image API error: ${response.status} ${response.statusText} - ${msg}`)
+        } catch {
+          throw new Error(`OpenAI Image API error: ${response.status} ${response.statusText} - ${text}`)
+        }
       }
-      const data = await response.json()
+      const data = JSON.parse(text)
       const b64 = data?.data?.[0]?.b64_json
       if (!b64) throw new Error('No image returned from AI')
       return b64
