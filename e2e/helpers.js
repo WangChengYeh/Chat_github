@@ -5,6 +5,14 @@ import path from 'path';
 /**
  * Test helper functions for PWA testing
  */
+// Polyfill btoa/atob for Node.js test environment
+if (typeof global.btoa !== 'function') {
+  global.btoa = (str) => Buffer.from(str, 'utf8').toString('base64');
+}
+if (typeof global.atob !== 'function') {
+  global.atob = (b64) => Buffer.from(b64, 'base64').toString('utf8');
+}
+
 export class PWATestHelpers {
   constructor(page) {
     this.page = page;
