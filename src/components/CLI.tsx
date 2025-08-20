@@ -59,7 +59,8 @@ export const CLI: React.FC = () => {
     websocket,
     setWebSocket,
     addWebSocketMessage,
-    clearWebSocketMessages
+    clearWebSocketMessages,
+    setWebShell
   } = useStore()
 
   useEffect(() => {
@@ -294,7 +295,8 @@ export const CLI: React.FC = () => {
     const cPath = (arg && arg.trim()) ? arg.trim() : (config.path || '')
     if (!cPath) {
       addHistory('Usage: /wsh <path/to/file.c> (or open a .c file and run /wsh)')
-      addHistory('Opens https://webassembly.sh/ and copies a compile command to clipboard.')
+      addHistory('Entering Web Shell. Use the Copy button to paste prepared commands.')
+      setMode('wsh' as any)
       return
     }
     if (!/\.c$/i.test(cPath)) {
@@ -329,23 +331,10 @@ export const CLI: React.FC = () => {
     const runCmd = `ls -la ${wasmName}`
     const full = `${heredoc}\n${compileCmd}\n${runCmd}`
 
-    try {
-      await navigator.clipboard.writeText(full)
-      addHistory('📋 Copied webassembly.sh commands to clipboard:')
-    } catch {
-      addHistory('ℹ️ Unable to copy automatically. Commands printed below:')
-    }
-    addHistory('──────── Commands ────────')
-    addHistory(full)
-    addHistory('─────────────────────────')
-
-    // Open webassembly.sh in new tab/window
-    try {
-      window.open('https://webassembly.sh/', '_blank', 'noopener,noreferrer')
-      addHistory('🌐 Opened webassembly.sh — paste the commands to compile.')
-    } catch {
-      addHistory('🔗 Please open https://webassembly.sh/ and paste the commands.')
-    }
+    // Save prepared commands in store and switch to embedded shell
+    try { await navigator.clipboard.writeText(full); addHistory('📋 Copied commands to clipboard.') } catch {}
+    setWebShell({ prepared: full })
+    setMode('wsh' as any)
   }
 
   const openFile = async (path: string) => {

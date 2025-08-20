@@ -46,6 +46,9 @@ export interface AppState {
   history: string[]
   showConfig: boolean
   websocket: WebSocketState
+  webShell: {
+    prepared?: string
+  }
 }
 
 interface AppStore extends AppState {
@@ -60,6 +63,7 @@ interface AppStore extends AppState {
   setWebSocket: (ws: Partial<WebSocketState>) => void
   addWebSocketMessage: (message: WebSocketState['messages'][0]) => void
   clearWebSocketMessages: () => void
+  setWebShell: (ws: Partial<AppState['webShell']>) => void
 }
 
 const initialFile: FileState = {
@@ -101,6 +105,7 @@ export const useStore = create<AppStore>((set) => ({
   history: [],
   showConfig: false,
   websocket: initialWebSocket,
+  webShell: {},
 
   setMode: (mode) => set({ mode }),
   
@@ -141,5 +146,9 @@ export const useStore = create<AppStore>((set) => ({
 
   clearWebSocketMessages: () => set((state) => ({
     websocket: { ...state.websocket, messages: [] }
+  })),
+
+  setWebShell: (ws) => set((state) => ({
+    webShell: { ...state.webShell, ...ws }
   }))
 }))

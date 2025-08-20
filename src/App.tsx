@@ -5,6 +5,7 @@ import { Editor } from './components/Editor'
 import { Tool } from './components/Tool'
 import { ConfigOverlay } from './components/ConfigOverlay'
 import { InstallPrompt } from './components/InstallPrompt'
+import { WebShell } from './components/WebShell'
 import { PwaDiagnostics } from './components/PwaDiagnostics'
 import './App.css'
 
@@ -31,6 +32,8 @@ function App() {
         return <Editor />
       case 'tool':
         return <Tool />
+      case 'wsh' as any:
+        return <WebShell />
       default:
         return <CLI />
     }
