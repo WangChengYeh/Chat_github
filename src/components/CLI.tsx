@@ -124,6 +124,10 @@ export const CLI: React.FC = () => {
       case 'image':
         await handleImageCommand(arg)
         break
+      case 'wsh':
+      case 'wasmer':
+        await handleWasmerShellCommand(arg)
+        break
       case 'apply':
         applyAIChanges()
         break
@@ -282,6 +286,65 @@ export const CLI: React.FC = () => {
       addHistory('- Ensure OpenAI key is valid and has access to gpt-image-1')
       addHistory('- Try a different prompt (may violate content policy)')
       addHistory('- If using Chrome, check DevTools → Network for response details')
+    }
+  }
+
+  const handleWasmerShellCommand = async (arg: string) => {
+    // Open webassembly.sh and prepare a ready-to-paste compile command
+    const cPath = (arg && arg.trim()) ? arg.trim() : (config.path || '')
+    if (!cPath) {
+      addHistory('Usage: /wsh <path/to/file.c> (or open a .c file and run /wsh)')
+      addHistory('Opens https://webassembly.sh/ and copies a compile command to clipboard.')
+      return
+    }
+    if (!/\.c$/i.test(cPath)) {
+      addHistory(`❌ Not a C source file: ${cPath}`)
+      return
+    }
+
+    // Obtain source content
+    let source = ''
+    try {
+      if (config.path && cPath === config.path) {
+        source = file.current
+      } else {
+        if (!config.githubToken || !config.owner || !config.repo) {
+          addHistory('❌ GitHub configuration missing for fetching file. Use /config.')
+          return
+        }
+        const github = new GitHubService(config.githubToken, config.owner, config.repo)
+        const { content } = await github.getFile(cPath, config.branch)
+        source = content
+      }
+    } catch (e) {
+      addHistory(`❌ Failed to load source file: ${e instanceof Error ? e.message : String(e)}`)
+      return
+    }
+
+    const base = cPath.split('/').pop() || 'program.c'
+    const wasmName = base.replace(/\.c$/i, '.wasm')
+    // Escape EOF block safely
+    const heredoc = `cat <<'EOF' > ${base}\n${source}\nEOF`
+    const compileCmd = `clang --target=wasm32-wasi -O3 -Wl,--export-all -Wl,--no-entry -o ${wasmName} ${base}`
+    const runCmd = `ls -la ${wasmName}`
+    const full = `${heredoc}\n${compileCmd}\n${runCmd}`
+
+    try {
+      await navigator.clipboard.writeText(full)
+      addHistory('📋 Copied webassembly.sh commands to clipboard:')
+    } catch {
+      addHistory('ℹ️ Unable to copy automatically. Commands printed below:')
+    }
+    addHistory('──────── Commands ────────')
+    addHistory(full)
+    addHistory('─────────────────────────')
+
+    // Open webassembly.sh in new tab/window
+    try {
+      window.open('https://webassembly.sh/', '_blank', 'noopener,noreferrer')
+      addHistory('🌐 Opened webassembly.sh — paste the commands to compile.')
+    } catch {
+      addHistory('🔗 Please open https://webassembly.sh/ and paste the commands.')
     }
   }
 
