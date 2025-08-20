@@ -37,13 +37,19 @@ export async function compileCWithWasmer(
   if (!sdk && typeof window !== 'undefined') {
     // Allow overriding SDK URL for debugging/compatibility
     const override = (window as any).__WASMER_SDK_URL
-    if (override) {
-      sdk = await dynImport(override)
+    const candidates = [
+      override,
+      // Versionless candidates first (less likely to 404 when unsure of versions)
+      'https://esm.sh/@wasmer/sdk',
+      'https://cdn.jsdelivr.net/npm/@wasmer/sdk/+esm',
+      'https://unpkg.com/@wasmer/sdk/dist/index.esm.js',
+      'https://cdn.skypack.dev/@wasmer/sdk',
+      'https://esm.run/@wasmer/sdk',
+    ].filter(Boolean) as string[]
+    for (const url of candidates) {
+      sdk = await dynImport(url)
+      if (sdk) break
     }
-    if (!sdk) sdk = await dynImport('https://esm.sh/@wasmer/sdk@1.1.1')
-      || await dynImport('https://cdn.skypack.dev/@wasmer/sdk')
-      || await dynImport('https://esm.run/@wasmer/sdk@1.1.1')
-      || await dynImport('https://unpkg.com/@wasmer/sdk@1.1.1/dist/index.esm.js')
   }
   if (!sdk) {
     throw new Error('Wasmer SDK not available. Check network access; falling back failed.')
@@ -67,7 +73,7 @@ export async function compileCWithWasmer(
   const createFsCandidate = (api.createFs || api.createFS || api.FS?.create || api.fs?.create || (api.FS ? () => new api.FS() : undefined))
   if (typeof createFsCandidate !== 'function') {
     const keys = Object.keys(api).slice(0, 20).join(', ')
-    throw new Error(`Wasmer SDK missing createFs(); available keys: [${keys}] — try setting window.__WASMER_SDK_URL to a compatible SDK (e.g., 'https://esm.sh/@wasmer/sdk@1.1.1') and re-run /cc.`)
+    throw new Error(`Wasmer SDK missing createFs(); available keys: [${keys}] — try setting window.__WASMER_SDK_URL to a compatible SDK (e.g., 'https://esm.sh/@wasmer/sdk') and re-run /cc.`)
   }
   onProgress?.('fs', 'Creating in-memory filesystem...')
   const fs = await createFsCandidate.call(api)
