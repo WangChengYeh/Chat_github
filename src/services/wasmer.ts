@@ -7,7 +7,13 @@ export interface WasmerCompileResult {
   stderr: string
 }
 
-export async function compileCWithWasmer(source: string, filename = 'program.c'): Promise<WasmerCompileResult> {
+export type WasmerProgress = (stage: string, message: string) => void
+
+export async function compileCWithWasmer(
+  source: string,
+  filename = 'program.c',
+  onProgress?: WasmerProgress
+): Promise<WasmerCompileResult> {
   // Test hook: allow Playwright to inject a mock compiler to avoid network
   if (typeof window !== 'undefined' && (window as any).__mockCompileCWithWasmer) {
     const res = await (window as any).__mockCompileCWithWasmer(source, filename)
@@ -25,6 +31,7 @@ export async function compileCWithWasmer(source: string, filename = 'program.c')
   }
   let sdk: any = null
   // Try local module resolution first (if installed)
+  onProgress?.('sdk', 'Loading Wasmer SDK...')
   sdk = await dynImport('@wasmer/sdk')
   // Fallback to ESM CDNs in browser
   if (!sdk && typeof window !== 'undefined') {
@@ -47,6 +54,7 @@ export async function compileCWithWasmer(source: string, filename = 'program.c')
   }
   // Initialize SDK (uses default registry https://registry.wasmer.io) if init() exists
   if (typeof api.init === 'function') {
+    onProgress?.('sdk', 'Initializing Wasmer SDK...')
     await api.init()
   }
 
@@ -56,6 +64,7 @@ export async function compileCWithWasmer(source: string, filename = 'program.c')
     const keys = Object.keys(api).slice(0, 20).join(', ')
     throw new Error(`Wasmer SDK missing createFs(); available keys: [${keys}] — try setting window.__WASMER_SDK_URL to a compatible SDK (e.g., 'https://esm.sh/@wasmer/sdk@1.1.1') and re-run /cc.`)
   }
+  onProgress?.('fs', 'Creating in-memory filesystem...')
   const fs = await createFsCandidate.call(api)
   await fs.writeFile(`/work/${filename}`, new TextEncoder().encode(source))
 
@@ -74,6 +83,8 @@ export async function compileCWithWasmer(source: string, filename = 'program.c')
   if (typeof api.runPackage !== 'function') {
     throw new Error('Wasmer SDK missing runPackage()')
   }
+  onProgress?.('pkg', `Fetching package ${clangPkg}...`)
+  onProgress?.('compile', 'Compiling to WebAssembly (wasm32-wasi, O3)...')
   const result = await api.runPackage(clangPkg, {
     args,
     mount: { '/work': fs },
@@ -86,9 +97,11 @@ export async function compileCWithWasmer(source: string, filename = 'program.c')
   try { stdout = new TextDecoder().decode(await result.stdout?.bytes()) } catch {}
   try { stderr = new TextDecoder().decode(await result.stderr?.bytes()) } catch {}
 
+  onProgress?.('result', 'Reading build outputs...')
   const wasm = await fs.readFile(`/work/${outName}`)
   if (!wasm || !(wasm instanceof Uint8Array)) {
     throw new Error(`Wasmer compile failed: output file missing. Stderr: ${stderr}`)
   }
+  onProgress?.('done', 'Compilation complete')
   return { wasm, stdout, stderr }
 }

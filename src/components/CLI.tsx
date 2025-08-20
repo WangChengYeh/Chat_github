@@ -803,7 +803,17 @@ export const CLI: React.FC = () => {
     addHistory('🧪 Using Wasmer SDK (LLVM/Clang latest) to compile in browser...')
     try {
       const { compileCWithWasmer } = await import('../services/wasmer')
-      const res = await compileCWithWasmer(source, cPath.split('/').pop() || 'program.c')
+      const stageIcon: Record<string, string> = {
+        sdk: '⏳', pkg: '⬇️', fs: '📁', compile: '🛠️', result: '📦', done: '✅'
+      }
+      const res = await compileCWithWasmer(
+        source,
+        cPath.split('/').pop() || 'program.c',
+        (stage, message) => {
+          const icon = stageIcon[stage] || '•'
+          addHistory(`${icon} ${message}`)
+        }
+      )
       if (res.stdout?.trim()) addHistory(res.stdout.trim())
       if (res.stderr?.trim()) addHistory(res.stderr.trim())
 
