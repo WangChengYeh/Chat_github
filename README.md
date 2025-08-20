@@ -1,4 +1,6 @@
 # Phone AI + GitHub 📱🤖  
+[![CI - Playwright Tests](https://github.com/WangChengYeh/Chat_github/actions/workflows/ci-tests.yml/badge.svg)](https://github.com/WangChengYeh/Chat_github/actions/workflows/ci-tests.yml)
+[![Deploy PWA to GitHub Pages](https://github.com/WangChengYeh/Chat_github/actions/workflows/deploy-pages.yml/badge.svg)](https://github.com/WangChengYeh/Chat_github/actions/workflows/deploy-pages.yml)
 **Mobile-First Dual Fullscreen: AI CLI & Text Editor with Chinese Support**
 
 A minimal, phone-friendly React PWA for editing GitHub repository files using AI assistance. Designed for SMALL SCREENS with only two main views—AI CLI (chat/commands) and Fullscreen Text Editor (viewer + edit + diff toggle). Fully supports Chinese text editing and AI instructions.
