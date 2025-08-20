@@ -43,6 +43,7 @@ export async function compileCWithWasmer(
     if (!sdk) sdk = await dynImport('https://esm.sh/@wasmer/sdk@1.1.1')
       || await dynImport('https://cdn.skypack.dev/@wasmer/sdk')
       || await dynImport('https://esm.run/@wasmer/sdk@1.1.1')
+      || await dynImport('https://unpkg.com/@wasmer/sdk@1.1.1/dist/index.esm.js')
   }
   if (!sdk) {
     throw new Error('Wasmer SDK not available. Check network access; falling back failed.')
@@ -52,14 +53,18 @@ export async function compileCWithWasmer(
   if (!api) {
     throw new Error('Wasmer SDK loaded but no usable API was found')
   }
-  // Initialize SDK (uses default registry https://registry.wasmer.io) if init() exists
-  if (typeof api.init === 'function') {
+  // Initialize SDK (per docs: Wasmer.initialize()) or older: init()
+  if (typeof api.initialize === 'function') {
+    onProgress?.('sdk', 'Initializing Wasmer SDK...')
+    await api.initialize()
+  } else if (typeof api.init === 'function') {
     onProgress?.('sdk', 'Initializing Wasmer SDK...')
     await api.init()
   }
 
   // Create a virtual filesystem and write source
-  const createFsCandidate = (api.createFs || api.createFS || api.FS?.create || api.fs?.create)
+  // Per docs: Wasmer.createFs() — try common variants
+  const createFsCandidate = (api.createFs || api.createFS || api.FS?.create || api.fs?.create || (api.FS ? () => new api.FS() : undefined))
   if (typeof createFsCandidate !== 'function') {
     const keys = Object.keys(api).slice(0, 20).join(', ')
     throw new Error(`Wasmer SDK missing createFs(); available keys: [${keys}] — try setting window.__WASMER_SDK_URL to a compatible SDK (e.g., 'https://esm.sh/@wasmer/sdk@1.1.1') and re-run /cc.`)
@@ -85,7 +90,12 @@ export async function compileCWithWasmer(
   }
   onProgress?.('pkg', `Fetching package ${clangPkg}...`)
   onProgress?.('compile', 'Compiling to WebAssembly (wasm32-wasi, O3)...')
-  const result = await api.runPackage(clangPkg, {
+  const runPkg = (api.runPackage || api.packages?.run || api.run)
+  if (typeof runPkg !== 'function') {
+    const keys = Object.keys(api).slice(0, 20).join(', ')
+    throw new Error(`Wasmer SDK missing runPackage(); available keys: [${keys}]`)
+  }
+  const result = await runPkg.call(api, clangPkg, {
     args,
     mount: { '/work': fs },
     env: {}
