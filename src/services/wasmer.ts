@@ -73,9 +73,10 @@ export async function compileCWithWasmer(
   const fs = await createFsCandidate.call(api)
   await fs.writeFile(`/work/${filename}`, new TextEncoder().encode(source))
 
-  // Choose a clang package (adjust version as available)
-  // Use newest stable clang package from Wasmer registry
-  const clangPkg = 'wasmer/clang:latest'
+  // Choose a clang package (adjust via window.__WASMER_PKG if needed)
+  const clangPkg = (typeof window !== 'undefined' && (window as any).__WASMER_PKG)
+    ? (window as any).__WASMER_PKG
+    : 'wasmer/clang:latest'
 
   // Compile to standalone wasm. For clang in Wasmer, --target=wasm32-wasi with no entry can be used,
   // but we default to exporting main; users may add their own flags later.
