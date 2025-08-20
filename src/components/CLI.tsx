@@ -829,8 +829,47 @@ export const CLI: React.FC = () => {
       setTimeout(() => { document.body.removeChild(a); URL.revokeObjectURL(url) }, 100)
       addHistory(`✅ Downloaded ${outName} (in-browser compile)`) 
     } catch (e) {
-      addHistory(`❌ Wasmer compile failed: ${e instanceof Error ? e.message : String(e)}`)
+      const errMsg = e instanceof Error ? e.message : String(e)
+      addHistory(`❌ Wasmer compile failed: ${errMsg}`)
       addHistory('Note: This feature requires network access to fetch the LLVM/Clang package from Wasmer registry.')
+      // iOS/PWA environments may block dynamic ESM imports; try server fallback if available
+      if (wsService && wsService.isConnected()) {
+        try {
+          const base = cPath.split('/').pop() || 'program.c'
+          const wasmName = base.replace(/\.c$/i, '.wasm')
+          addHistory('↩️ Falling back to server-side compile using emscripten (emcc)...')
+          // Upload source to server workspace
+          wsService.sendFileUpload(base, source, false)
+          addHistory(`📤 Uploaded ${base} to server workspace`)
+          // Build with emcc
+          const compileCmd = [
+            'bash -lc',
+            `"set -e; cd websocket_files; ` +
+            `if command -v emcc >/dev/null 2>&1; then ` +
+            `emcc '${base}' -O3 -s WASM=1 -s STANDALONE_WASM=1 -s EXPORTED_FUNCTIONS=\\\"['_main']\\\" -o '${wasmName}'; ` +
+            `else echo 'Emscripten (emcc) not found on server. Install emsdk and activate it.' >&2; exit 127; fi"`
+          ].join(' ')
+          addHistory('🛠️ Compiling on server (emcc)...')
+          wsService.sendCommand(compileCmd)
+          // Try to fetch the artifact a few times
+          let attempts = 0
+          const tryDownload = () => {
+            attempts++
+            try {
+              wsService.requestFileDownload(wasmName)
+              addHistory(`⬇️ Requesting ${wasmName} (attempt ${attempts})`)
+            } catch {}
+            if (attempts < 8) setTimeout(tryDownload, 1000)
+          }
+          setTimeout(tryDownload, 2000)
+          return
+        } catch (se) {
+          addHistory(`❌ Server fallback failed: ${se instanceof Error ? se.message : String(se)}`)
+        }
+      } else {
+        addHistory('💡 You can connect a WebSocket server with emscripten installed and retry:')
+        addHistory('   /socket connect ws://localhost:8080  then /cc c.c')
+      }
     }
     return
 
@@ -1073,7 +1112,7 @@ export const CLI: React.FC = () => {
       '/config - Open configuration',
       '/save - Save current file to local Downloads',
       '/tokens - Estimate token usage',
-      '/cc [file.c] - Compile C→WebAssembly in browser (Wasmer SDK, LLVM/Clang latest)',
+      '/cc [file.c] - Compile C→WebAssembly in browser (Wasmer). If SDK blocked, falls back to server emscripten when connected.',
       '/img <prompt> - Generate image via AI and upload',
       '/update - Check for application updates',
       '/editor - Switch to editor',
