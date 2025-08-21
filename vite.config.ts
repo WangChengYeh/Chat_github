@@ -82,6 +82,15 @@ export default defineConfig({
               cacheName: 'wasmer-registry',
               expiration: { maxEntries: 20, maxAgeSeconds: 60 * 60 * 24 * 7 }
             }
+          },
+          // Cache Pyodide (Python in WebAssembly) assets for offline usage
+          {
+            urlPattern: new RegExp('^https://cdn\\.jsdelivr\\.net/npm/pyodide@'),
+            handler: 'CacheFirst',
+            options: {
+              cacheName: 'pyodide',
+              expiration: { maxEntries: 30, maxAgeSeconds: 60 * 60 * 24 * 14 }
+            }
           }
         ]
       },

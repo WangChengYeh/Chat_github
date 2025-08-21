@@ -342,34 +342,50 @@ export const CLI: React.FC = () => {
 
   const handlePreloadCommand = async (arg: string) => {
     const target = (arg || '').trim().toLowerCase()
-    if (target !== 'wasmer') {
-      addHistory('Usage: /preload wasmer')
+    if (!target || (target !== 'wasmer' && target !== 'python')) {
+      addHistory('Usage: /preload wasmer | python')
       return
     }
-    addHistory('⏳ Preloading Wasmer SDK and registry cache...')
-    const candidates = [
-      (window as any).__WASMER_SDK_URL,
-      'https://esm.sh/@wasmer/sdk',
-      'https://cdn.jsdelivr.net/npm/@wasmer/sdk/+esm',
-      'https://unpkg.com/@wasmer/sdk/dist/index.esm.js',
-      'https://cdn.skypack.dev/@wasmer/sdk',
-      'https://esm.run/@wasmer/sdk'
-    ].filter(Boolean) as string[]
-    let ok = false
-    for (const url of candidates) {
+    if (target === 'wasmer') {
+      addHistory('⏳ Preloading Wasmer SDK and registry cache...')
+      const candidates = [
+        (window as any).__WASMER_SDK_URL,
+        'https://esm.sh/@wasmer/sdk',
+        'https://cdn.jsdelivr.net/npm/@wasmer/sdk/+esm',
+        'https://unpkg.com/@wasmer/sdk/dist/index.esm.js',
+        'https://cdn.skypack.dev/@wasmer/sdk',
+        'https://esm.run/@wasmer/sdk'
+      ].filter(Boolean) as string[]
+      let ok = false
+      for (const url of candidates) {
+        try { await fetch(url, { mode: 'no-cors' }); addHistory(`✅ Cached SDK candidate: ${url}`); ok = true; break } catch {}
+      }
       try {
-        await fetch(url, { mode: 'no-cors' })
-        addHistory(`✅ Cached SDK candidate: ${url}`)
-        ok = true
-        break
+        const pkg = (window as any).__WASMER_PKG || 'https://registry.wasmer.io/v1/packages/wasmer/clang'
+        await fetch(pkg, { mode: 'no-cors' })
+        addHistory(`✅ Prewarmed registry: ${pkg}`)
       } catch {}
+      if (!ok) addHistory('ℹ️ Could not fetch SDK script now; it may still load when /cc runs.')
+      return
     }
-    try {
-      const pkg = (window as any).__WASMER_PKG || 'https://registry.wasmer.io/v1/packages/wasmer/clang'
-      await fetch(pkg, { mode: 'no-cors' })
-      addHistory(`✅ Prewarmed registry: ${pkg}`)
-    } catch {}
-    if (!ok) addHistory('ℹ️ Could not fetch SDK script now; it may still load when /cc runs.')
+    if (target === 'python') {
+      addHistory('⏳ Preloading Pyodide core files for offline use...')
+      const base = (window as any).__PYODIDE_BASE || 'https://cdn.jsdelivr.net/npm/pyodide@0.24.1/full'
+      const assets = [
+        'pyodide.js', 'pyodide.mjs', 'pyodide.wasm',
+        'packages.json', 'pyodide-lock.json', 'python_stdlib.zip'
+      ]
+      let count = 0
+      for (const a of assets) {
+        try {
+          await fetch(`${base}/${a}`, { mode: 'no-cors' })
+          addHistory(`✅ Cached ${a}`)
+          count++
+        } catch {}
+      }
+      if (count === 0) addHistory('ℹ️ Could not fetch Pyodide assets now; they may still be cached when a Python runtime is added.')
+      return
+    }
   }
 
   const openFile = async (path: string) => {
@@ -1199,6 +1215,7 @@ export const CLI: React.FC = () => {
       '/config - Open configuration',
       '/save - Save current file to local Downloads',
       '/tokens - Estimate token usage',
+      '/preload wasmer|python - Pre-cache SDK/registry or Pyodide assets for offline',
       '/cc [file.c] - Compile C→WebAssembly in browser (Wasmer). If SDK blocked, falls back to server emscripten when connected.',
       '/img <prompt> - Generate image via AI and upload',
       '/update - Check for application updates',
