@@ -22,6 +22,11 @@
     
     <!-- iOS Splash Screens -->
     <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+    
+    <!-- Configure local Pyodide base for offline Python (/preload python) -->
+    <script>
+      window.__PYODIDE_BASE = '/Chat_github/vendor/pyodide/0.24.1/full';
+    </script>
     <title>Phone AI + GitHub - 手機端 AI 程式編輯器</title>
     <script>
       // Ensure GitHub Pages path has trailing slash for iOS A2HS stability
@@ -36,7 +41,7 @@
         } catch (e) { /* noop */ }
       })();
     </script>
-    <script type="module" crossorigin src="/Chat_github/assets/index-B2Xz5geY.js"></script>
+    <script type="module" crossorigin src="/Chat_github/assets/index-4akwGfDm.js"></script>
     <link rel="stylesheet" crossorigin href="/Chat_github/assets/index-Cp1skWFE.css">
   <link rel="manifest" href="/Chat_github/manifest.webmanifest"><script id="vite-plugin-pwa:register-sw" src="/Chat_github/registerSW.js"></script></head>
   <body>
