@@ -6,6 +6,10 @@ node_modules/
 # Production build
 #/dist
 
+# Large vendored assets (keep repo lean)
+public/vendor/pyodide/*/full/packages/
+public/vendor/**/*.tar.bz2
+
 # Environment variables
 .env
 .env.local
