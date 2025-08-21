@@ -118,9 +118,6 @@ export const CLI: React.FC = () => {
       case 'download':
         await handleDownloadCommand(arg)
         break
-      case 'cc':
-        await handleCompileC(arg)
-        break
       case 'img':
       case 'image':
         await handleImageCommand(arg)
@@ -868,6 +865,7 @@ export const CLI: React.FC = () => {
     }
   }
 
+  /* Removed: /cc compile command - superseded by /wsh and server workflows
   const handleCompileC = async (arg: string) => {
     // Compile a C source file to WebAssembly in-browser via Wasmer SDK
     // Usage: /cc [path/to/file.c]  (defaults to current config.path)
@@ -979,6 +977,7 @@ export const CLI: React.FC = () => {
 
     // (server compile path removed)
   }
+  */
 
   const applyAIChanges = () => {
     if (!ai.lastAIContent) {
@@ -1218,7 +1217,6 @@ export const CLI: React.FC = () => {
       '/tokens - Estimate token usage',
       '/preload wasmer|python - Pre-cache SDK/registry or Pyodide assets for offline',
       '/preload wsh - Pre-cache webassembly.sh shell page for offline',
-      '/cc [file.c] - Compile C→WebAssembly in browser (Wasmer). If SDK blocked, falls back to server emscripten when connected.',
       '/img <prompt> - Generate image via AI and upload',
       '/update - Check for application updates',
       '/editor - Switch to editor',
