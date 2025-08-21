@@ -30,29 +30,26 @@ export async function compileCWithWasmer(
     }
   }
   let sdk: any = null
-  // Try local module resolution first (if installed)
-  onProgress?.('sdk', 'Loading Wasmer SDK...')
-  sdk = await dynImport('@wasmer/sdk')
-  // Fallback to ESM CDNs in browser
-  if (!sdk && typeof window !== 'undefined') {
-    // Allow overriding SDK URL for debugging/compatibility
+  // Local-only SDK loading
+  onProgress?.('sdk', 'Loading Wasmer SDK (local path only)...')
+  if (typeof window !== 'undefined') {
     const override = (window as any).__WASMER_SDK_URL
-    const candidates = [
+    const localCandidates = [
       override,
-      // Versionless candidates first (less likely to 404 when unsure of versions)
-      'https://esm.sh/@wasmer/sdk',
-      'https://cdn.jsdelivr.net/npm/@wasmer/sdk/+esm',
-      'https://unpkg.com/@wasmer/sdk/dist/index.esm.js',
-      'https://cdn.skypack.dev/@wasmer/sdk',
-      'https://esm.run/@wasmer/sdk',
+      // Prefer GitHub Pages base path
+      '/Chat_github/vendor/wasmer-sdk/index.esm.js',
+      // Also support root deployment
+      '/vendor/wasmer-sdk/index.esm.js',
+      // Relative path for dev
+      'vendor/wasmer-sdk/index.esm.js'
     ].filter(Boolean) as string[]
-    for (const url of candidates) {
+    for (const url of localCandidates) {
       sdk = await dynImport(url)
       if (sdk) break
     }
   }
   if (!sdk) {
-    throw new Error('Wasmer SDK not available. Check network access; falling back failed.')
+    throw new Error('Wasmer SDK not available locally. Place SDK at /Chat_github/vendor/wasmer-sdk/index.esm.js (or set window.__WASMER_SDK_URL to a local path).')
   }
   // Resolve Wasmer API shape across different module formats/CDNs
   const api: any = (sdk && (sdk.Wasmer || sdk.default?.Wasmer || sdk.default || sdk))

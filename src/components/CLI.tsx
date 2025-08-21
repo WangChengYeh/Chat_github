@@ -347,25 +347,10 @@ export const CLI: React.FC = () => {
       return
     }
     if (target === 'wasmer') {
-      addHistory('⏳ Preloading Wasmer SDK and registry cache...')
-      const candidates = [
-        (window as any).__WASMER_SDK_URL,
-        'https://esm.sh/@wasmer/sdk',
-        'https://cdn.jsdelivr.net/npm/@wasmer/sdk/+esm',
-        'https://unpkg.com/@wasmer/sdk/dist/index.esm.js',
-        'https://cdn.skypack.dev/@wasmer/sdk',
-        'https://esm.run/@wasmer/sdk'
-      ].filter(Boolean) as string[]
-      let ok = false
-      for (const url of candidates) {
-        try { await fetch(url, { mode: 'no-cors' }); addHistory(`✅ Cached SDK candidate: ${url}`); ok = true; break } catch {}
-      }
-      try {
-        const pkg = (window as any).__WASMER_PKG || 'https://registry.wasmer.io/v1/packages/wasmer/clang'
-        await fetch(pkg, { mode: 'no-cors' })
-        addHistory(`✅ Prewarmed registry: ${pkg}`)
-      } catch {}
-      if (!ok) addHistory('ℹ️ Could not fetch SDK script now; it may still load when /cc runs.')
+      addHistory('⏳ Preloading local Wasmer SDK (no network)...')
+      const local = (window as any).__WASMER_SDK_URL || '/Chat_github/vendor/wasmer-sdk/index.esm.js'
+      try { await fetch(local, { mode: 'no-cors' }); addHistory(`✅ Cached SDK: ${local}`) } catch { addHistory(`❌ Could not cache local SDK at ${local}. Place the SDK ESM there or set window.__WASMER_SDK_URL.`) }
+      addHistory('ℹ️ Registry packages are not downloaded in this mode. Use /wsh or server fallback for toolchains.')
       return
     }
     if (target === 'python') {
