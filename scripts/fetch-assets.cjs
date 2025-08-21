@@ -132,11 +132,11 @@ async function fetchPyodide(version = '0.28.2') {
   console.log(`Pyodide ${version} fetched to ${outBase}`)
 }
 
-async function fetchPyodideArchive(version = '0.28.2') {
+async function fetchPyodideArchive(version = '0.28.2', variant = process.env.PYODIDE_VARIANT === 'core' ? 'core' : 'full') {
   // Download and extract the official release tarball which includes core files, metadata, and packages/
   // See: https://pyodide.org/en/stable/usage/downloading-and-deploying.html#serving-pyodide-packages
   const tag = version
-  const file = `pyodide-${version}.tar.bz2`
+  const file = variant === 'core' ? `pyodide-core-${version}.tar.bz2` : `pyodide-${version}.tar.bz2`
   const candidates = [
     // Common release URL patterns
     `https://github.com/pyodide/pyodide/releases/download/${tag}/${file}`,
@@ -163,7 +163,7 @@ async function fetchPyodideArchive(version = '0.28.2') {
 
   // Extract into outDir stripping the top-level folder in the archive
   // Requires system 'tar' with bzip2 support
-  console.log('Extracting', archivePath, 'to', outDir)
+  console.log(`Extracting (${variant})`, archivePath, 'to', outDir)
   try {
     cp.execFileSync('tar', ['-xjf', archivePath, '--strip-components=1', '-C', outDir], { stdio: 'inherit' })
   } catch (e) {

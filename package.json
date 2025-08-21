@@ -41,6 +41,7 @@
     "fetch:pyodide": "node scripts/fetch-assets.cjs pyodide",
     "fetch:pyodide:archive": "PYODIDE_FETCH=archive node scripts/fetch-assets.cjs pyodide-archive",
     "pyodide:archive:sh": "bash scripts/download-pyodide-archive.sh 0.28.2",
+    "pyodide:archive:core": "bash scripts/download-pyodide-archive.sh 0.28.2 core",
     "fetch:wasmer": "node scripts/fetch-assets.cjs wasmer",
     "fetch:assets": "node scripts/fetch-assets.cjs all",
     "fetch:assets:archive": "PYODIDE_FETCH=archive node scripts/fetch-assets.cjs all"
