@@ -91,6 +91,15 @@ export default defineConfig({
               cacheName: 'pyodide',
               expiration: { maxEntries: 30, maxAgeSeconds: 60 * 60 * 24 * 14 }
             }
+          },
+          // Cache Wasmer Web Shell (webassembly.sh) resources for offline usage
+          {
+            urlPattern: new RegExp('^https://webassembly\\.sh/'),
+            handler: 'CacheFirst',
+            options: {
+              cacheName: 'webassembly-sh',
+              expiration: { maxEntries: 20, maxAgeSeconds: 60 * 60 * 24 * 7 }
+            }
           }
         ]
       },

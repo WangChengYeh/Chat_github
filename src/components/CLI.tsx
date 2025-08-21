@@ -342,8 +342,8 @@ export const CLI: React.FC = () => {
 
   const handlePreloadCommand = async (arg: string) => {
     const target = (arg || '').trim().toLowerCase()
-    if (!target || (target !== 'wasmer' && target !== 'python')) {
-      addHistory('Usage: /preload wasmer | python')
+    if (!target || (target !== 'wasmer' && target !== 'python' && target !== 'wsh' && target !== 'webshell')) {
+      addHistory('Usage: /preload wasmer | python | wsh')
       return
     }
     if (target === 'wasmer') {
@@ -384,6 +384,22 @@ export const CLI: React.FC = () => {
         } catch {}
       }
       if (count === 0) addHistory('ℹ️ Could not fetch Pyodide assets now; they may still be cached when a Python runtime is added.')
+      return
+    }
+    if (target === 'wsh' || target === 'webshell') {
+      addHistory('⏳ Preloading WebAssembly.sh shell for offline usage...')
+      try {
+        await fetch('https://webassembly.sh/', { mode: 'no-cors' })
+        addHistory('✅ Cached https://webassembly.sh/')
+      } catch {}
+      // Optionally try common static paths (best-effort; site may change)
+      const guesses = [
+        'https://webassembly.sh/favicon.ico'
+      ]
+      for (const url of guesses) {
+        try { await fetch(url, { mode: 'no-cors' }); addHistory(`✅ Cached ${url}`) } catch {}
+      }
+      addHistory('ℹ️ The shell itself controls its internal assets; main page is now cached with CacheFirst.')
       return
     }
   }
@@ -1216,6 +1232,7 @@ export const CLI: React.FC = () => {
       '/save - Save current file to local Downloads',
       '/tokens - Estimate token usage',
       '/preload wasmer|python - Pre-cache SDK/registry or Pyodide assets for offline',
+      '/preload wsh - Pre-cache webassembly.sh shell page for offline',
       '/cc [file.c] - Compile C→WebAssembly in browser (Wasmer). If SDK blocked, falls back to server emscripten when connected.',
       '/img <prompt> - Generate image via AI and upload',
       '/update - Check for application updates',
