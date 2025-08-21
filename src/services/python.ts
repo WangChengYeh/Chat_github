@@ -58,3 +58,33 @@ export async function runPythonCode(code: string): Promise<PythonRunResult> {
   }
 }
 
+export async function runPythonCodeAsync(code: string): Promise<PythonRunResult> {
+  const pyodide = await loadPython()
+  let outBuf = ''
+  let errBuf = ''
+  const origOut = pyodide.stdout_callback
+  const origErr = pyodide.stderr_callback
+  pyodide.setStdout((s: string) => { outBuf += s })
+  pyodide.setStderr((s: string) => { errBuf += s })
+  try {
+    const result = await pyodide.runPythonAsync(code)
+    return { stdout: outBuf, stderr: errBuf, result }
+  } finally {
+    pyodide.setStdout(origOut)
+    pyodide.setStderr(origErr)
+  }
+}
+
+export async function installMicropipPackages(packages: string[]): Promise<PythonRunResult> {
+  const pyodide = await loadPython()
+  // Ensure micropip is available
+  try {
+    // loadPackage uses pyodide CDN assets; SW CacheFirst + /preload python will make this offline
+    await pyodide.loadPackage('micropip')
+  } catch (e) {
+    // continue; import may still work if bundled
+  }
+  const pkgsLit = JSON.stringify(packages)
+  const code = `import asyncio\nimport micropip\nasync def _install():\n    pkgs = ${pkgsLit}\n    for p in pkgs:\n        await micropip.install(p)\nasyncio.get_event_loop().run_until_complete(_install())`
+  return await runPythonCodeAsync(code)
+}

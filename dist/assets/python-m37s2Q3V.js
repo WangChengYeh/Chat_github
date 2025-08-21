@@ -1,0 +1,7 @@
+let d=null;async function c(e){document.querySelector(`script[data-pyodide-src="${e}"]`)||await new Promise((t,r)=>{const o=document.createElement("script");o.src=e,o.async=!0,o.dataset.pyodideSrc=e,o.onload=()=>t(),o.onerror=()=>r(new Error(`Failed to load ${e}`)),document.head.appendChild(o)})}async function s(){return d||(d=(async()=>{const e=window.__PYODIDE_BASE||"https://cdn.jsdelivr.net/npm/pyodide@0.24.1/full";window.loadPyodide||await c(`${e}/pyodide.js`);const t=window.loadPyodide;if(typeof t!="function")throw new Error("Pyodide loader not available after script load");return await t({indexURL:e})})(),d)}async function u(e){const t=await s();let r="",o="";const i=t.stdout_callback,a=t.stderr_callback;t.setStdout(n=>{r+=n}),t.setStderr(n=>{o+=n});try{const n=t.runPython(e);return{stdout:r,stderr:o,result:n}}finally{t.setStdout(i),t.setStderr(a)}}async function l(e){const t=await s();let r="",o="";const i=t.stdout_callback,a=t.stderr_callback;t.setStdout(n=>{r+=n}),t.setStderr(n=>{o+=n});try{const n=await t.runPythonAsync(e);return{stdout:r,stderr:o,result:n}}finally{t.setStdout(i),t.setStderr(a)}}async function y(e){const t=await s();try{await t.loadPackage("micropip")}catch{}const o=`import asyncio
+import micropip
+async def _install():
+    pkgs = ${JSON.stringify(e)}
+    for p in pkgs:
+        await micropip.install(p)
+asyncio.get_event_loop().run_until_complete(_install())`;return await l(o)}export{y as installMicropipPackages,s as loadPython,u as runPythonCode,l as runPythonCodeAsync};

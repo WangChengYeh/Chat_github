@@ -132,6 +132,15 @@ export const CLI: React.FC = () => {
       case 'python':
         await handlePythonCommand(arg)
         break
+      case 'pip': {
+        const [sub, ...rest] = arg.split(' ').filter(Boolean)
+        if (sub === 'install') {
+          await handlePipInstall(rest)
+        } else {
+          addHistory('Usage: /pip install <pkg1> [pkg2 ...]')
+        }
+        break
+      }
       case 'apply':
         applyAIChanges()
         break
@@ -438,6 +447,30 @@ export const CLI: React.FC = () => {
       addHistory(`❌ Python run failed: ${e instanceof Error ? e.message : String(e)}`)
       addHistory('Tip: Run /preload python once to cache Pyodide assets for offline use.')
       addHistory('You can also open the Python Runner panel with /python and run code interactively.')
+    }
+  }
+
+  const handlePipInstall = async (pkgs: string[]) => {
+    if (pkgs.length === 0) {
+      addHistory('Usage: /pip install <pkg1> [pkg2 ...]')
+      return
+    }
+    addHistory(`📦 Installing: ${pkgs.join(', ')}`)
+    try {
+      const { installMicropipPackages } = await import('../services/python')
+      const res = await installMicropipPackages(pkgs)
+      if (res.stdout) {
+        addHistory('— pip stdout —')
+        res.stdout.split('\n').forEach(l => l && addHistory(l))
+      }
+      if (res.stderr) {
+        addHistory('— pip stderr —')
+        res.stderr.split('\n').forEach(l => l && addHistory(l))
+      }
+      addHistory('✅ Installation complete (Pyodide/micropip)')
+    } catch (e) {
+      addHistory(`❌ pip install failed: ${e instanceof Error ? e.message : String(e)}`)
+      addHistory('Tip: Only pure-Python packages are supported; run /preload python first for faster installs.')
     }
   }
 
@@ -1273,6 +1306,7 @@ export const CLI: React.FC = () => {
       '/preload wasmer|python - Pre-cache SDK/registry or Pyodide assets for offline',
       '/preload wsh - Pre-cache webassembly.sh shell page for offline',
       '/python <file.py> - Run a Python file via Pyodide and show output',
+      '/pip install <pkg...> - Install pure-Python packages via micropip (Pyodide)',
       '/img <prompt> - Generate image via AI and upload',
       '/update - Check for application updates',
       '/editor - Switch to editor',

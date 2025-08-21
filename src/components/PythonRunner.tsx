@@ -8,6 +8,7 @@ export const PythonRunner: React.FC = () => {
   const [stderr, setStderr] = useState<string>('')
   const [loading, setLoading] = useState<boolean>(false)
   const [ready, setReady] = useState<boolean>(false)
+  const [pkgInput, setPkgInput] = useState<string>('')
   const loadedRef = useRef(false)
 
   useEffect(() => {
@@ -43,6 +44,22 @@ export const PythonRunner: React.FC = () => {
     }
   }
 
+  const install = async () => {
+    const list = pkgInput.split(/[,\s]+/).map(s => s.trim()).filter(Boolean)
+    if (list.length === 0) return
+    try {
+      setLoading(true)
+      const { installMicropipPackages } = await import('../services/python')
+      const res = await installMicropipPackages(list)
+      setStdout(prev => (prev ? prev + '\n' : '') + (res.stdout || ''))
+      setStderr(prev => (prev ? prev + '\n' : '') + (res.stderr || ''))
+    } catch (e) {
+      setStderr(prev => (prev ? prev + '\n' : '') + String(e instanceof Error ? e.message : e))
+    } finally {
+      setLoading(false)
+    }
+  }
+
   const clear = () => {
     setStdout('')
     setStderr('')
@@ -61,6 +78,15 @@ export const PythonRunner: React.FC = () => {
       <div className="tool-section" style={{display: 'flex', gap: '12px', alignItems: 'stretch'}}>
         <div style={{flex: 1, minHeight: 0}}>
           <h3>Code</h3>
+          <div style={{display: 'flex', gap: 8, alignItems: 'center', marginBottom: 8}}>
+            <input
+              value={pkgInput}
+              onChange={(e) => setPkgInput(e.target.value)}
+              placeholder="micropip packages (e.g., numpy requests)"
+              style={{flex: 1, background: '#111', color: '#fff', border: '1px solid #333', borderRadius: 6, padding: 8}}
+            />
+            <button onClick={install} disabled={loading || !ready}>Install</button>
+          </div>
           <textarea
             value={code}
             onChange={(e) => setCode(e.target.value)}
@@ -95,4 +121,3 @@ export const PythonRunner: React.FC = () => {
     </div>
   )
 }
-
