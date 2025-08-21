@@ -64,6 +64,24 @@ export default defineConfig({
                 }
               ]
             }
+          },
+          // Cache Wasmer SDK from common CDNs
+          {
+            urlPattern: new RegExp('^https://(esm\\.sh|cdn\\.jsdelivr\\.net|unpkg\\.com|cdn\\.skypack\\.dev|esm\\.run)/'),
+            handler: 'CacheFirst',
+            options: {
+              cacheName: 'wasmer-sdk',
+              expiration: { maxEntries: 10, maxAgeSeconds: 60 * 60 * 24 * 7 }
+            }
+          },
+          // Cache Wasmer registry packages
+          {
+            urlPattern: new RegExp('^https://registry\\.wasmer\\.io/'),
+            handler: 'CacheFirst',
+            options: {
+              cacheName: 'wasmer-registry',
+              expiration: { maxEntries: 20, maxAgeSeconds: 60 * 60 * 24 * 7 }
+            }
           }
         ]
       },

@@ -129,6 +129,9 @@ export const CLI: React.FC = () => {
       case 'wasmer':
         await handleWasmerShellCommand(arg)
         break
+      case 'preload':
+        await handlePreloadCommand(arg)
+        break
       case 'apply':
         applyAIChanges()
         break
@@ -335,6 +338,38 @@ export const CLI: React.FC = () => {
     try { await navigator.clipboard.writeText(full); addHistory('📋 Copied commands to clipboard.') } catch {}
     setWebShell({ prepared: full })
     setMode('wsh' as any)
+  }
+
+  const handlePreloadCommand = async (arg: string) => {
+    const target = (arg || '').trim().toLowerCase()
+    if (target !== 'wasmer') {
+      addHistory('Usage: /preload wasmer')
+      return
+    }
+    addHistory('⏳ Preloading Wasmer SDK and registry cache...')
+    const candidates = [
+      (window as any).__WASMER_SDK_URL,
+      'https://esm.sh/@wasmer/sdk',
+      'https://cdn.jsdelivr.net/npm/@wasmer/sdk/+esm',
+      'https://unpkg.com/@wasmer/sdk/dist/index.esm.js',
+      'https://cdn.skypack.dev/@wasmer/sdk',
+      'https://esm.run/@wasmer/sdk'
+    ].filter(Boolean) as string[]
+    let ok = false
+    for (const url of candidates) {
+      try {
+        await fetch(url, { mode: 'no-cors' })
+        addHistory(`✅ Cached SDK candidate: ${url}`)
+        ok = true
+        break
+      } catch {}
+    }
+    try {
+      const pkg = (window as any).__WASMER_PKG || 'https://registry.wasmer.io/v1/packages/wasmer/clang'
+      await fetch(pkg, { mode: 'no-cors' })
+      addHistory(`✅ Prewarmed registry: ${pkg}`)
+    } catch {}
+    if (!ok) addHistory('ℹ️ Could not fetch SDK script now; it may still load when /cc runs.')
   }
 
   const openFile = async (path: string) => {
