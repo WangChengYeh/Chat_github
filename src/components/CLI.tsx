@@ -364,10 +364,10 @@ export const CLI: React.FC = () => {
     }
     if (target === 'python') {
       addHistory('⏳ Preloading Pyodide core files for offline use...')
-      const base = (window as any).__PYODIDE_BASE || 'https://cdn.jsdelivr.net/npm/pyodide@0.24.1/full'
+      const base = (window as any).__PYODIDE_BASE || 'https://cdn.jsdelivr.net/pyodide/v0.28.2/full'
       const assets = [
-        'pyodide.js', 'pyodide.mjs', 'pyodide.wasm',
-        'packages.json', 'pyodide-lock.json', 'python_stdlib.zip'
+        'pyodide.js', 'pyodide.mjs', 'pyodide.asm.wasm',
+        'repodata.json', 'pyodide-lock.json', 'python_stdlib.zip'
       ]
       let count = 0
       for (const a of assets) {

@@ -37,7 +37,12 @@
     "test:debug": "playwright test --debug",
     "ios:build": "./scripts/build-ios.sh",
     "ios:dev": "npm run build && npx cap copy ios && npx cap open ios",
-    "ios:sync": "npx cap sync ios"
+    "ios:sync": "npx cap sync ios",
+    "fetch:pyodide": "node scripts/fetch-assets.cjs pyodide",
+    "fetch:pyodide:archive": "PYODIDE_FETCH=archive node scripts/fetch-assets.cjs pyodide-archive",
+    "fetch:wasmer": "node scripts/fetch-assets.cjs wasmer",
+    "fetch:assets": "node scripts/fetch-assets.cjs all",
+    "fetch:assets:archive": "PYODIDE_FETCH=archive node scripts/fetch-assets.cjs all"
   },
   "dependencies": {
     "@capacitor/cli": "^7.4.2",

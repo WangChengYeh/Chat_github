@@ -85,11 +85,21 @@ export default defineConfig({
           },
           // Cache Pyodide (Python in WebAssembly) assets for offline usage
           {
-            urlPattern: new RegExp('^https://cdn\\.jsdelivr\\.net/npm/pyodide@'),
+            // Support both npm and official /pyodide/v paths
+            urlPattern: new RegExp('^https://cdn\\.jsdelivr\\.net/(npm/pyodide@|pyodide/v)'),
             handler: 'CacheFirst',
             options: {
               cacheName: 'pyodide',
               expiration: { maxEntries: 30, maxAgeSeconds: 60 * 60 * 24 * 14 }
+            }
+          },
+          // Cache local vendor mirror of Pyodide for offline usage
+          {
+            urlPattern: new RegExp('^/Chat_github/vendor/pyodide/'),
+            handler: 'CacheFirst',
+            options: {
+              cacheName: 'pyodide-local',
+              expiration: { maxEntries: 60, maxAgeSeconds: 60 * 60 * 24 * 30 }
             }
           },
           // Cache Wasmer Web Shell (webassembly.sh) resources for offline usage

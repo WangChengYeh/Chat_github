@@ -25,9 +25,21 @@ async function injectScript(src: string): Promise<void> {
 export async function loadPython(): Promise<any> {
   if (pyodideReady) return pyodideReady
   pyodideReady = (async () => {
-    const base = (window as any).__PYODIDE_BASE || 'https://cdn.jsdelivr.net/npm/pyodide@0.24.1/full'
+    const preferredBase = (window as any).__PYODIDE_BASE
+    const cdnBase = 'https://cdn.jsdelivr.net/pyodide/v0.28.2/full'
+    let base = preferredBase || cdnBase
     if (!(window as any).loadPyodide) {
-      await injectScript(`${base}/pyodide.js`)
+      try {
+        await injectScript(`${base}/pyodide.js`)
+      } catch (e) {
+        if (preferredBase) {
+          // Fallback to CDN if local vendor mirror is missing
+          base = cdnBase
+          await injectScript(`${base}/pyodide.js`)
+        } else {
+          throw e
+        }
+      }
     }
     const loadPyodideFn = (window as any).loadPyodide
     if (typeof loadPyodideFn !== 'function') {
