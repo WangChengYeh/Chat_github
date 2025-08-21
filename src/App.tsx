@@ -6,6 +6,7 @@ import { Tool } from './components/Tool'
 import { ConfigOverlay } from './components/ConfigOverlay'
 import { InstallPrompt } from './components/InstallPrompt'
 import { WebShell } from './components/WebShell'
+import { PythonRunner } from './components/PythonRunner'
 import { PwaDiagnostics } from './components/PwaDiagnostics'
 import './App.css'
 
@@ -34,6 +35,8 @@ function App() {
         return <Tool />
       case 'wsh' as any:
         return <WebShell />
+      case 'python' as any:
+        return <PythonRunner />
       default:
         return <CLI />
     }

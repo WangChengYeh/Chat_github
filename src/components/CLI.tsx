@@ -393,7 +393,8 @@ export const CLI: React.FC = () => {
     // Run a Python .py file via Pyodide and show its output
     const pPath = (arg && arg.trim()) ? arg.trim() : (config.path || '')
     if (!pPath) {
-      addHistory('Usage: /python <path/to/file.py> (or open a .py file and run /python)')
+      addHistory('Opening Python Runner panel…')
+      setMode('python' as any)
       return
     }
     if (!/\.py$/i.test(pPath)) {
@@ -436,6 +437,7 @@ export const CLI: React.FC = () => {
     } catch (e) {
       addHistory(`❌ Python run failed: ${e instanceof Error ? e.message : String(e)}`)
       addHistory('Tip: Run /preload python once to cache Pyodide assets for offline use.')
+      addHistory('You can also open the Python Runner panel with /python and run code interactively.')
     }
   }
 
