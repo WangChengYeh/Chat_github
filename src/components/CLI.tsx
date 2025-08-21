@@ -129,6 +129,9 @@ export const CLI: React.FC = () => {
       case 'preload':
         await handlePreloadCommand(arg)
         break
+      case 'python':
+        await handlePythonCommand(arg)
+        break
       case 'apply':
         applyAIChanges()
         break
@@ -383,6 +386,56 @@ export const CLI: React.FC = () => {
       }
       addHistory('ℹ️ The shell itself controls its internal assets; main page is now cached with CacheFirst.')
       return
+    }
+  }
+
+  const handlePythonCommand = async (arg: string) => {
+    // Run a Python .py file via Pyodide and show its output
+    const pPath = (arg && arg.trim()) ? arg.trim() : (config.path || '')
+    if (!pPath) {
+      addHistory('Usage: /python <path/to/file.py> (or open a .py file and run /python)')
+      return
+    }
+    if (!/\.py$/i.test(pPath)) {
+      addHistory(`❌ Not a Python source file: ${pPath}`)
+      return
+    }
+    let source = ''
+    try {
+      if (config.path && pPath === config.path) {
+        source = file.current
+      } else {
+        if (!config.githubToken || !config.owner || !config.repo) {
+          addHistory('❌ GitHub configuration missing for fetching file. Use /config.')
+          return
+        }
+        const github = new GitHubService(config.githubToken, config.owner, config.repo)
+        const { content } = await github.getFile(pPath, config.branch)
+        source = content
+      }
+    } catch (e) {
+      addHistory(`❌ Failed to load Python file: ${e instanceof Error ? e.message : String(e)}`)
+      return
+    }
+    addHistory('🐍 Running Python via Pyodide...')
+    try {
+      const { runPythonCode } = await import('../services/python')
+      const res = await runPythonCode(source)
+      if (res.stdout) {
+        addHistory('— Python stdout —')
+        res.stdout.split('\n').forEach((line) => line && addHistory(line))
+      }
+      if (res.stderr) {
+        addHistory('— Python stderr —')
+        res.stderr.split('\n').forEach((line) => line && addHistory(line))
+      }
+      if (typeof res.result !== 'undefined') {
+        addHistory(`Result: ${String(res.result)}`)
+      }
+      addHistory('✅ Python execution complete')
+    } catch (e) {
+      addHistory(`❌ Python run failed: ${e instanceof Error ? e.message : String(e)}`)
+      addHistory('Tip: Run /preload python once to cache Pyodide assets for offline use.')
     }
   }
 
@@ -1217,6 +1270,7 @@ export const CLI: React.FC = () => {
       '/tokens - Estimate token usage',
       '/preload wasmer|python - Pre-cache SDK/registry or Pyodide assets for offline',
       '/preload wsh - Pre-cache webassembly.sh shell page for offline',
+      '/python <file.py> - Run a Python file via Pyodide and show output',
       '/img <prompt> - Generate image via AI and upload',
       '/update - Check for application updates',
       '/editor - Switch to editor',
