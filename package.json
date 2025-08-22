@@ -32,6 +32,7 @@
     "typecheck": "tsc --noEmit",
     "test": "node test.js",
     "test:playwright": "playwright test",
+    "test:prod": "playwright test -c playwright.prod.config.js e2e/prod-smoke.spec.js",
     "test:ai": "playwright test ai-workflows.spec.js",
     "test:ui": "playwright test --ui",
     "test:debug": "playwright test --debug",

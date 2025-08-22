@@ -51,22 +51,66 @@ export async function loadPython(): Promise<any> {
   return pyodideReady
 }
 
+// Internal: compat layer for Pyodide stdout/stderr APIs across versions
+function setStdoutCompat(pyodide: any, cb: (s: string) => void) {
+  // Try new API (>=0.26): setStdout({ batched })
+  try {
+    pyodide.setStdout({ batched: cb })
+    return { mode: 'obj' as const, orig: undefined }
+  } catch {
+    // Fallback to legacy API used in our tests/mocks
+    const orig = (pyodide as any).stdout_callback
+    try { pyodide.setStdout(cb) } catch {}
+    return { mode: 'fn' as const, orig }
+  }
+}
+
+function setStderrCompat(pyodide: any, cb: (s: string) => void) {
+  try {
+    pyodide.setStderr({ batched: cb })
+    return { mode: 'obj' as const, orig: undefined }
+  } catch {
+    const orig = (pyodide as any).stderr_callback
+    try { pyodide.setStderr(cb) } catch {}
+    return { mode: 'fn' as const, orig }
+  }
+}
+
+function restoreStdoutCompat(pyodide: any, ctx: { mode: 'obj' | 'fn', orig: any }) {
+  try {
+    if (ctx.mode === 'obj') {
+      // Reset to default
+      pyodide.setStdout()
+    } else {
+      pyodide.setStdout(ctx.orig)
+    }
+  } catch {}
+}
+
+function restoreStderrCompat(pyodide: any, ctx: { mode: 'obj' | 'fn', orig: any }) {
+  try {
+    if (ctx.mode === 'obj') {
+      pyodide.setStderr()
+    } else {
+      pyodide.setStderr(ctx.orig)
+    }
+  } catch {}
+}
+
 export async function runPythonCode(code: string): Promise<PythonRunResult> {
   const pyodide = await loadPython()
   let outBuf = ''
   let errBuf = ''
-  const origOut = pyodide.stdout_callback
-  const origErr = pyodide.stderr_callback
-  pyodide.setStdout((s: string) => { outBuf += s })
-  pyodide.setStderr((s: string) => { errBuf += s })
+  const outCtx = setStdoutCompat(pyodide, (s: string) => { outBuf += s })
+  const errCtx = setStderrCompat(pyodide, (s: string) => { errBuf += s })
   try {
     // runPython is sync; for long tasks you may switch to runPythonAsync
     const result = pyodide.runPython(code)
     return { stdout: outBuf, stderr: errBuf, result }
   } finally {
     // restore callbacks
-    pyodide.setStdout(origOut)
-    pyodide.setStderr(origErr)
+    restoreStdoutCompat(pyodide, outCtx)
+    restoreStderrCompat(pyodide, errCtx)
   }
 }
 
@@ -74,16 +118,14 @@ export async function runPythonCodeAsync(code: string): Promise<PythonRunResult>
   const pyodide = await loadPython()
   let outBuf = ''
   let errBuf = ''
-  const origOut = pyodide.stdout_callback
-  const origErr = pyodide.stderr_callback
-  pyodide.setStdout((s: string) => { outBuf += s })
-  pyodide.setStderr((s: string) => { errBuf += s })
+  const outCtx = setStdoutCompat(pyodide, (s: string) => { outBuf += s })
+  const errCtx = setStderrCompat(pyodide, (s: string) => { errBuf += s })
   try {
     const result = await pyodide.runPythonAsync(code)
     return { stdout: outBuf, stderr: errBuf, result }
   } finally {
-    pyodide.setStdout(origOut)
-    pyodide.setStderr(origErr)
+    restoreStdoutCompat(pyodide, outCtx)
+    restoreStderrCompat(pyodide, errCtx)
   }
 }
 
